@@ -1,4 +1,9 @@
-#pragma once
+//
+// Created by jeanhua on 2025/8/16.
+//
+
+#ifndef MINECRAFT_SHADER_H
+#define MINECRAFT_SHADER_H
 #include "../../core.h"
 
 class Shader {
@@ -29,3 +34,5 @@ private:
 private:
 	GLuint mProgram;
 };
+
+#endif

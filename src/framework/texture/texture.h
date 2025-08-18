@@ -1,4 +1,9 @@
-#pragma once
+//
+// Created by jeanhua on 2025/8/16.
+//
+
+#ifndef MINECRAFT_TEXTURE_H
+#define MINECRAFT_TEXTURE_H
 #include "../../core.h"
 
 class Texture {
@@ -13,3 +18,5 @@ private:
 	int mHeight = 0;
 	unsigned int mUnit = 0;
 };
+
+#endif

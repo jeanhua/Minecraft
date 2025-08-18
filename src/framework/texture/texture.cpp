@@ -1,3 +1,7 @@
+//
+// Created by jeanhua on 2025/8/16.
+//
+
 #include "texture.h"
 
 #define STB_IMAGE_IMPLEMENTATION
