@@ -1,0 +1,42 @@
+//
+// Created by jeanhua on 2025/8/16.
+//
+
+#ifndef MINECRAFT_CAMERA_H
+#define MINECRAFT_CAMERA_H
+
+#include "../../core.h"
+#include "../shader/shader.h"
+
+class Camera {
+public:
+    Camera(float aspect,const std::string& updateTarget,float scale);
+    ~Camera()=default;
+
+    [[nodiscard]] glm::mat4 getViewMatrix() const;
+    [[nodiscard]] glm::mat4 getProjectionMatrix() const;
+    [[nodiscard]] glm::vec3 getPosition() const;
+
+    void setAspectRatio(float aspect);
+
+public:
+    // callback
+    void onUpdate(GLFWwindow* window,Shader& shader);
+
+private:
+    glm::vec3 mPosition{};
+    glm::vec3 mDirectionBack{};
+
+    float aspectRatio=4.0/3.0;
+    std::string mUpdateTarget;
+
+    float mScale = 1.0f;
+    float mSpeed=1.0f;
+    bool mFirstMouse=true;
+    float mYaw = 90.0f;
+    float mPitch = 45.0f;
+    float mSensitivity = 0.05f;
+    float mLastX = 0.0f, mLastY = 0.0f;
+};
+
+#endif //MINECRAFT_CAMERA_H
