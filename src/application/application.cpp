@@ -24,8 +24,11 @@ Application *Application::create() {
 
 Application::~Application() {
     delete mWorldShader;
-    delete mTexture;
+    delete mWorldTexture;
     delete mCamera;
+    delete mSkyboxShader;
+    delete mSkyboxTexture;
+    delete mSkybox;
     for (auto chunk: mChunks) {
         delete chunk.second;
     }
@@ -61,11 +64,25 @@ void Application::init(uint32_t width, uint32_t height, uint16_t fps) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
 
-    std::cout << "Start to compile shader program..." << std::endl;
+    std::cout << "Start to compile world shader program..." << std::endl;
     mWorldShader = new Shader("assets/shader/vertex.glsl", "assets/shader/fragment.glsl");
     if (mWorldShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
-    mTexture = new Texture("assets/texture/textures.png", 0);
+    mWorldTexture = new Texture2D("assets/texture/textures.png", 0);
     mCamera = new Camera(4.0f / 3.0f, "vpMat",MODEL_SCALE);
+
+    std::cout<<"Start to compile skybox shader program..."<<std::endl;
+    mSkyboxShader = new Shader("assets/shader/vertex_skybox.glsl", "assets/shader/fragment_skybox.glsl");
+    if (mSkyboxShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
+    std::vector<std::string> paths = {
+        "assets/texture/skybox/xpos.png",
+        "assets/texture/skybox/xneg.png",
+        "assets/texture/skybox/ypos.png",
+        "assets/texture/skybox/yneg.png",
+        "assets/texture/skybox/zpos.png",
+        "assets/texture/skybox/zneg.png",
+    };
+    mSkyboxTexture = new TextureCube(paths,0);
+    mSkybox = new Skybox(mSkyboxShader);
 
     //vao = createCubeVertexArray(mShader->getAttribPos("aPosition"),mShader->getAttribPos("aNormal"),mShader->getAttribPos("aUV"));
 
@@ -132,7 +149,19 @@ glm::mat4 getModelPosition(glm::vec3 pos, float scale) {
 
 void Application::update(GLFWwindow *window) {
     auto *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
-    app->mTexture->bind();
+
+    // skybox
+    app->mSkyboxTexture->bind();
+    app->mSkyboxShader->begin();
+    app->mSkyboxShader->setInt("skybox",0);
+    app->mSkyboxShader->setMat4("projection",app->mCamera->getProjectionMatrix());
+    app->mSkyboxShader->setMat4("view",glm::mat4(glm::mat3(app->mCamera->getViewMatrix())));
+    app->mSkybox->render();
+    app->mSkyboxShader->end();
+
+
+    // world
+    app->mWorldTexture->bind();
     app->mWorldShader->begin();
     app->mWorldShader->setInt("sampler", 0);
 

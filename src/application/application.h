@@ -12,8 +12,10 @@
 
 #include "../core.h"
 #include "../framework/shader/shader.h"
-#include "../framework/texture/texture.h"
+#include "../framework/texture/Texture2D.h"
+#include "../framework/texture/textureCube.h"
 #include "../framework/camera/camera.h"
+#include "skybox/skybox.h"
 #include "chunk/Chunk.h"
 
 #define MODEL_SCALE 0.05f
@@ -39,8 +41,12 @@ private:
     GLFWwindow* mWindow=nullptr;
 
     Shader* mWorldShader = nullptr;
-    Texture* mTexture = nullptr;
+    Texture2D* mWorldTexture = nullptr;
     Camera* mCamera = nullptr;
+
+    Shader* mSkyboxShader = nullptr;
+    TextureCube* mSkyboxTexture = nullptr;
+    Skybox* mSkybox = nullptr;
 
     uint16_t mFPS = 120;
 
