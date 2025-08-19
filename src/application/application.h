@@ -5,10 +5,12 @@
 #ifndef MINECRAFT_APPLICATION_H
 #define MINECRAFT_APPLICATION_H
 
+#include <future>
 #include <random>
 #include <unordered_map>
 #include <utility>
 #include <FastNoise/FastNoise.h>
+#include <shared_mutex>
 
 #include "../core.h"
 #include "../framework/shader/shader.h"
@@ -30,6 +32,13 @@ struct PairHash {
         auto hash2 = std::hash<T2>{}(p.second);
         return hash1 ^ (hash2 << 1);
     }
+};
+
+
+struct ChunkBuffer {
+    bool finished = false;
+    std::shared_mutex mutex;
+    std::unordered_map<std::pair<int,int>,Chunk*,PairHash> chunks;
 };
 
 class Application {
@@ -58,6 +67,10 @@ private:
     Chunk* getChunk(int x_id,int z_id);
     void writeChunk(int x_id,int z_id,Chunk* chunk);
     void removeChunk(int x_id,int z_id);
+
+    ChunkBuffer* mChunkBuffer = nullptr;
+    std::future<void> mChunkBufferFuture;
+
     // generate
     int mapSeed = 0;
     int treeSeed = 0;

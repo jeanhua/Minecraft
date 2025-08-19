@@ -29,6 +29,7 @@ Application::~Application() {
     delete mSkyboxShader;
     delete mSkyboxTexture;
     delete mSkybox;
+    delete mChunkBuffer;
     for (auto chunk: mChunks) {
         delete chunk.second;
     }
@@ -96,6 +97,9 @@ void Application::init(uint32_t width, uint32_t height, uint16_t fps) {
     fractal->SetOctaveCount(5);
     fractal->SetGain(0.5f);
     fractal->SetLacunarity(2.0f);
+
+    // chunkBuffer
+    mChunkBuffer = new ChunkBuffer();
 }
 
 void Application::run() const {
@@ -199,7 +203,6 @@ void Application::chunkUpdate() {
             aroundChunk.push_back(chunk);
         }
     }
-
 
     // generate chunks
     std::vector<float> worldNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
