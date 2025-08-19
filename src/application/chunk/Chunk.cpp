@@ -373,15 +373,15 @@ void Chunk::generateMesh() {
 
     glEnableVertexAttribArray(mShader->getAttribPos("aPosition"));
     glVertexAttribPointer(mShader->getAttribPos("aPosition"), 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                          (void *) offsetof(Vertex, x));
+                          reinterpret_cast<void *>(offsetof(Vertex, x)));
 
     glEnableVertexAttribArray(mShader->getAttribPos("aNormal"));
     glVertexAttribPointer(mShader->getAttribPos("aNormal"), 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                          (void *) offsetof(Vertex, nx));
+                          reinterpret_cast<void *>(offsetof(Vertex, nx)));
 
     glEnableVertexAttribArray(mShader->getAttribPos("aUV"));
     glVertexAttribPointer(mShader->getAttribPos("aUV"), 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                          (void *) offsetof(Vertex, u));
+                          reinterpret_cast<void *>(offsetof(Vertex, u)));
 
     glGenBuffers(1, &mEBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);

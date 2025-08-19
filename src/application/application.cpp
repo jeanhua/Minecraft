@@ -68,7 +68,7 @@ void Application::init(uint32_t width, uint32_t height, uint16_t fps) {
     mWorldShader = new Shader("assets/shader/vertex.glsl", "assets/shader/fragment.glsl");
     if (mWorldShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
     mWorldTexture = new Texture2D("assets/texture/textures.png", 0);
-    mCamera = new Camera(4.0f / 3.0f, "vpMat",MODEL_SCALE);
+    mCamera = new Camera(4.0f / 3.0f, "projectionMatrix","viewMatrix",MODEL_SCALE);
 
     std::cout<<"Start to compile skybox shader program..."<<std::endl;
     mSkyboxShader = new Shader("assets/shader/vertex_skybox.glsl", "assets/shader/fragment_skybox.glsl");
@@ -157,7 +157,7 @@ void Application::update(GLFWwindow *window) {
     app->mSkyboxShader->setMat4("projection",app->mCamera->getProjectionMatrix());
     app->mSkyboxShader->setMat4("view",glm::mat4(glm::mat3(app->mCamera->getViewMatrix())));
     app->mSkybox->render();
-    app->mSkyboxShader->end();
+    Shader::end();
 
 
     // world
@@ -166,7 +166,11 @@ void Application::update(GLFWwindow *window) {
     app->mWorldShader->setInt("sampler", 0);
 
     // initial global model matrix
-    app->mWorldShader->setMat4("posMat", getModelPosition(glm::vec3(-0.0f, -10.0f, 0.0f),MODEL_SCALE));
+    app->mWorldShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, -10.0f, 0.0f),MODEL_SCALE));
+
+    // fog
+    app->mWorldShader->setFloat("fogDensity", 0.005f);
+    app->mWorldShader->setVec3("fogColor", 1.0f, 1.0f, 1.0f);
 
     // camera
     app->mCamera->onUpdate(window, *app->mWorldShader);
@@ -174,7 +178,7 @@ void Application::update(GLFWwindow *window) {
     // render chunk
     app->chunkUpdate();
 
-    app->mWorldShader->end();
+    Shader::end();
 }
 
 
@@ -186,13 +190,13 @@ void Application::chunkUpdate() {
     cameraPos.z /= MODEL_SCALE;
 
     float aChunkSize = SOLID_SIZE * CHUNK_SIZE;
-    int x_id = static_cast<int>(std::floor(cameraPos.x / aChunkSize)) - 3;
-    int z_id = static_cast<int>(std::floor(cameraPos.z / aChunkSize)) - 3;
+    int x_id = static_cast<int>(std::floor(cameraPos.x / aChunkSize)) - 8;
+    int z_id = static_cast<int>(std::floor(cameraPos.z / aChunkSize)) - 8;
 
     std::vector<Chunk *> aroundChunk;
-    aroundChunk.reserve(49);
-    for (int i = x_id; i < x_id + 7; i++) {
-        for (int k = z_id; k < z_id + 7; k++) {
+    aroundChunk.reserve(289);
+    for (int i = x_id; i < x_id + 17; i++) {
+        for (int k = z_id; k < z_id + 17; k++) {
             auto chunk = getChunk(i, k);
             aroundChunk.push_back(chunk);
         }
@@ -202,11 +206,11 @@ void Application::chunkUpdate() {
     for (int index = 0; index < aroundChunk.size(); index++) {
         if (aroundChunk[index] != nullptr)continue;
 
-        constexpr float frequency = 0.01f;
+        constexpr float frequency = 0.005f;
         std::vector<float> worldNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
         std::vector<float> treeNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
-        int chunkX = x_id + index / 7;
-        int chunkZ = z_id + index % 7;
+        int chunkX = x_id + index / 17;
+        int chunkZ = z_id + index % 17;
         fractal->GenUniformGrid2D(worldNoiseValues.data(), chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE,
                                   CHUNK_SIZE,CHUNK_SIZE, frequency, mapSeed);
         fractal->GenUniformGrid2D(treeNoiseValues.data(), chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE,
@@ -235,8 +239,8 @@ void Application::chunkUpdate() {
         int x = pair.first.first;
         int z = pair.first.second;
 
-        if (x < x_id || x >= x_id + 7 ||
-            z < z_id || z >= z_id + 7) {
+        if (x < x_id || x >= x_id + 17 ||
+            z < z_id || z >= z_id + 17) {
             chunksToRemove.emplace_back(pair.first);
             }
     }

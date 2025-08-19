@@ -59,7 +59,7 @@ Shader::~Shader() {
 	if (mProgram != 0)glDeleteProgram(mProgram);
 }
 
-void Shader::begin() {
+void Shader::begin() const {
 	glUseProgram(this->mProgram);
 }
 
@@ -67,14 +67,18 @@ void Shader::end() {
 	glUseProgram(0);
 }
 
-GLuint Shader::getAttribPos(const GLchar* name)
+GLuint Shader::getAttribPos(const GLchar* name) const
 {
 	return glGetAttribLocation(this->mProgram, name);
 }
 
 GLuint Shader::getUniformPos(const GLchar* name) const
 {
-	return glGetUniformLocation(this->mProgram, name);
+	GLuint loc = glGetUniformLocation(this->mProgram, name);
+	if (loc == -1) {
+		std::cout<<"can not get uniform location: "<<std::string(name)<<std::endl;
+	}
+	return loc;
 }
 
 GLuint Shader::getShaderProgram() const
@@ -82,39 +86,46 @@ GLuint Shader::getShaderProgram() const
 	return mProgram;
 }
 
-void Shader::setVec3(const std::string& name, float x, float y, float z)
+void Shader::setVec3(const std::string& name, float x, float y, float z) const
 {
-	GLfloat v[] = { x,y,z };
+	const GLfloat v[] = { x,y,z };
 	glUseProgram(mProgram);
-	glUniform3fv(getUniformPos(name.c_str()),3,v);
+	glUniform3fv(static_cast<int>(getUniformPos(name.c_str())),1,v);
 }
 
-void Shader::setInt(const std::string& name, int value)
-{
+void Shader::setVec3(const std::string &name, const glm::vec3 &value) const {
+	const GLfloat v[] = { value.x,value.y,value.z };
 	glUseProgram(mProgram);
-	glUniform1i(getUniformPos(name.c_str()), value);
+	glUniform3fv(static_cast<int>(getUniformPos(name.c_str())),1,v);
 }
 
-void Shader::setFloat(const std::string& name, float value)
+
+void Shader::setInt(const std::string& name, int value) const
 {
 	glUseProgram(mProgram);
-	glUniform1f(getUniformPos(name.c_str()), value);
+	glUniform1i(static_cast<int>(getUniformPos(name.c_str())), value);
 }
 
-void Shader::setMat4(const std::string& name, glm::mat4 value)
+void Shader::setFloat(const std::string& name, float value) const
 {
 	glUseProgram(mProgram);
-	glUniformMatrix4fv(getUniformPos(name.c_str()), 1, GL_FALSE, glm::value_ptr(value));
+	glUniform1f(static_cast<int>(getUniformPos(name.c_str())), value);
 }
 
-void Shader::checkError(GLuint target, CheckType type)
+void Shader::setMat4(const std::string& name, glm::mat4 value) const
+{
+	glUseProgram(mProgram);
+	glUniformMatrix4fv(static_cast<int>(getUniformPos(name.c_str())), 1, GL_FALSE, glm::value_ptr(value));
+}
+
+void Shader::checkError(GLuint target, CheckType type) const
 {
 	int  success;
 	char infoLog[512];
 	if (type == CheckType::link) {
 		glGetProgramiv(this->mProgram, GL_LINK_STATUS, &success);
 		if (!success) {
-			glGetProgramInfoLog(this->mProgram, 512, NULL, infoLog);
+			glGetProgramInfoLog(this->mProgram, 512, nullptr, infoLog);
 			std::cout << "ERROR::SHADER::FRAGMENT::LINK_FAILED\n" << infoLog << std::endl;
 			return;
 		}
@@ -122,7 +133,7 @@ void Shader::checkError(GLuint target, CheckType type)
 		glGetShaderiv(target, GL_COMPILE_STATUS, &success);
 		if (!success)
 		{
-			glGetShaderInfoLog(target, 512, NULL, infoLog);
+			glGetShaderInfoLog(target, 512, nullptr, infoLog);
 			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
 			return;
 		}

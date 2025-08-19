@@ -11,26 +11,27 @@ public:
 	Shader(const std::string& vertexPath, const std::string& fragmentPath);
 	~Shader();
 
-	void begin();
-	void end();
+	void begin() const;
+	static void end();
 
 public:
-	GLuint getAttribPos(const GLchar* name);
+	GLuint getAttribPos(const GLchar* name) const;
 	GLuint getUniformPos(const GLchar* name) const;
 
-	GLuint getShaderProgram()const;
+	[[nodiscard]] GLuint getShaderProgram()const;
 
-	void setVec3(const std::string& name, float x, float y, float z);
-	void setInt(const std::string& name, int value);
-	void setFloat(const std::string& name, float value);
-	void setMat4(const std::string& name, glm::mat4 value);
+	void setVec3(const std::string& name, float x, float y, float z) const;
+	void setVec3(const std::string& name,const glm::vec3& value) const;
+	void setInt(const std::string& name, int value) const;
+	void setFloat(const std::string& name, float value) const;
+	void setMat4(const std::string& name, glm::mat4 value) const;
 
 private:
 	enum CheckType
 	{
 		link, compile
 	};
-	void checkError(GLuint target, CheckType type);
+	void checkError(GLuint target, CheckType type) const;
 private:
 	GLuint mProgram;
 };

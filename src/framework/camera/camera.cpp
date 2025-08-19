@@ -6,12 +6,13 @@
 
 #include "../../application/chunk/Chunk.h"
 
-Camera::Camera(float aspect, const std::string &updateTarget,float scale) {
+Camera::Camera(float aspect,const std::string& projectionMatrixTarget,const std::string& viewMatrixTarget,float scale) {
     mPosition = glm::vec3(0.0f, 100.0f, 20.0f);
     glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
     mDirectionBack = glm::normalize(mPosition - target);
     this->aspectRatio = aspect;
-    this->mUpdateTarget = updateTarget;
+    this->viewMatrixTarget = viewMatrixTarget;
+    this->projectionMatrixTarget = projectionMatrixTarget;
     this->mScale = scale;
 }
 
@@ -23,7 +24,7 @@ glm::mat4 Camera::getViewMatrix() const {
 }
 
 glm::mat4 Camera::getProjectionMatrix() const {
-    return glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 100.0f * SOLID_SIZE * 0.05f);
+    return glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 500.0f * SOLID_SIZE * mScale);
 }
 
 void Camera::onUpdate(GLFWwindow *window, Shader &shader) {
@@ -82,7 +83,8 @@ void Camera::onUpdate(GLFWwindow *window, Shader &shader) {
     } else {
         mFirstMouse = true;
     }
-    shader.setMat4(mUpdateTarget, getProjectionMatrix() * getViewMatrix());
+    shader.setMat4(viewMatrixTarget,getViewMatrix());
+    shader.setMat4(projectionMatrixTarget,getProjectionMatrix());
 }
 
 void Camera::setAspectRatio(float aspect) {
@@ -92,4 +94,3 @@ void Camera::setAspectRatio(float aspect) {
 glm::vec3 Camera::getPosition() const {
     return mPosition;
 }
-
