@@ -5,7 +5,6 @@
 #include "application.h"
 
 #include <chrono>
-#include <thread>
 #include <cmath>
 
 #include "../framework/framework.h"
@@ -68,9 +67,9 @@ void Application::init(uint32_t width, uint32_t height, uint16_t fps) {
     mWorldShader = new Shader("assets/shader/vertex.glsl", "assets/shader/fragment.glsl");
     if (mWorldShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
     mWorldTexture = new Texture2D("assets/texture/textures.png", 0);
-    mCamera = new Camera(4.0f / 3.0f, "projectionMatrix","viewMatrix",MODEL_SCALE);
+    mCamera = new Camera(4.0f / 3.0f, "projectionMatrix", "viewMatrix",MODEL_SCALE);
 
-    std::cout<<"Start to compile skybox shader program..."<<std::endl;
+    std::cout << "Start to compile skybox shader program..." << std::endl;
     mSkyboxShader = new Shader("assets/shader/vertex_skybox.glsl", "assets/shader/fragment_skybox.glsl");
     if (mSkyboxShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
     std::vector<std::string> paths = {
@@ -81,15 +80,15 @@ void Application::init(uint32_t width, uint32_t height, uint16_t fps) {
         "assets/texture/skybox/zpos.png",
         "assets/texture/skybox/zneg.png",
     };
-    mSkyboxTexture = new TextureCube(paths,0);
+    mSkyboxTexture = new TextureCube(paths, 0);
     mSkybox = new Skybox(mSkyboxShader);
 
     //vao = createCubeVertexArray(mShader->getAttribPos("aPosition"),mShader->getAttribPos("aNormal"),mShader->getAttribPos("aUV"));
 
 
     // perlin func
-    mapSeed = generateRandomNumber(1,745323228);
-    treeSeed = generateRandomNumber(4234,23453453);
+    mapSeed = generateRandomNumber(1, 745323228);
+    treeSeed = generateRandomNumber(4234, 23453453);
     perlin = FastNoise::New<FastNoise::Perlin>();
     fractal = FastNoise::New<FastNoise::FractalFBm>();
     fractal->SetSource(perlin);
@@ -153,9 +152,9 @@ void Application::update(GLFWwindow *window) {
     // skybox
     app->mSkyboxTexture->bind();
     app->mSkyboxShader->begin();
-    app->mSkyboxShader->setInt("skybox",0);
-    app->mSkyboxShader->setMat4("projection",app->mCamera->getProjectionMatrix());
-    app->mSkyboxShader->setMat4("view",glm::mat4(glm::mat3(app->mCamera->getViewMatrix())));
+    app->mSkyboxShader->setInt("skybox", 0);
+    app->mSkyboxShader->setMat4("projection", app->mCamera->getProjectionMatrix());
+    app->mSkyboxShader->setMat4("view", glm::mat4(glm::mat3(app->mCamera->getViewMatrix())));
     app->mSkybox->render();
     Shader::end();
 
@@ -185,32 +184,34 @@ void Application::update(GLFWwindow *window) {
 void Application::chunkUpdate() {
     glm::vec3 cameraPos = mCamera->getPosition();
 
-    cameraPos.x /= MODEL_SCALE;
-    cameraPos.y /= MODEL_SCALE;
-    cameraPos.z /= MODEL_SCALE;
+    cameraPos /= MODEL_SCALE;
 
     float aChunkSize = SOLID_SIZE * CHUNK_SIZE;
-    int x_id = static_cast<int>(std::floor(cameraPos.x / aChunkSize)) - 8;
-    int z_id = static_cast<int>(std::floor(cameraPos.z / aChunkSize)) - 8;
+    int x_id = static_cast<int>(std::floor(cameraPos.x / aChunkSize)) - CHUNK_RADIUS;
+    int z_id = static_cast<int>(std::floor(cameraPos.z / aChunkSize)) - CHUNK_RADIUS;
 
     std::vector<Chunk *> aroundChunk;
-    aroundChunk.reserve(289);
-    for (int i = x_id; i < x_id + 17; i++) {
-        for (int k = z_id; k < z_id + 17; k++) {
+    aroundChunk.reserve(CHUNK_DIAMETER * CHUNK_DIAMETER);
+    for (int i = x_id; i < x_id + CHUNK_DIAMETER; i++) {
+        for (int k = z_id; k < z_id + CHUNK_DIAMETER; k++) {
             auto chunk = getChunk(i, k);
             aroundChunk.push_back(chunk);
         }
     }
 
 
+    // generate chunks
+    std::vector<float> worldNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
+    std::vector<float> treeNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
     for (int index = 0; index < aroundChunk.size(); index++) {
         if (aroundChunk[index] != nullptr)continue;
 
         constexpr float frequency = 0.005f;
-        std::vector<float> worldNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
-        std::vector<float> treeNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
-        int chunkX = x_id + index / 17;
-        int chunkZ = z_id + index % 17;
+        worldNoiseValues.assign(CHUNK_SIZE * CHUNK_SIZE, 0.0f);
+        worldNoiseValues.assign(CHUNK_SIZE * CHUNK_SIZE, 0.0f);
+
+        int chunkX = x_id + index / CHUNK_DIAMETER;
+        int chunkZ = z_id + index % CHUNK_DIAMETER;
         fractal->GenUniformGrid2D(worldNoiseValues.data(), chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE,
                                   CHUNK_SIZE,CHUNK_SIZE, frequency, mapSeed);
         fractal->GenUniformGrid2D(treeNoiseValues.data(), chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE,
@@ -221,40 +222,44 @@ void Application::chunkUpdate() {
             0.0f,
             static_cast<float>(chunkZ) * aChunkSize
         );
-        newChunk->init(chunkPos, worldNoiseValues,treeNoiseValues);
-        mChunks.insert({std::make_pair(chunkX, chunkZ), newChunk});
+        newChunk->init(chunkPos, worldNoiseValues, treeNoiseValues);
+        writeChunk(chunkX, chunkZ, newChunk);
         aroundChunk[index] = newChunk;
     }
 
-    // render
+    // clear far chunk
+    std::vector<std::pair<int, int> > chunksToRemove;
+    for (const auto &pair: mChunks) {
+        int x = pair.first.first;
+        int z = pair.first.second;
+        if (x < x_id || x >= x_id + CHUNK_DIAMETER ||
+            z < z_id || z >= z_id + CHUNK_DIAMETER) {
+            chunksToRemove.emplace_back(pair.first);
+        }
+    }
+    for (const auto &key: chunksToRemove) {
+        removeChunk(key.first, key.second);
+    }
     for (auto chunk: aroundChunk) {
         if (chunk != nullptr) {
             chunk->render();
         }
     }
-
-    // clear far chunk
-    std::vector<std::pair<int, int>> chunksToRemove;
-    for (const auto& pair : mChunks) {
-        int x = pair.first.first;
-        int z = pair.first.second;
-
-        if (x < x_id || x >= x_id + 17 ||
-            z < z_id || z >= z_id + 17) {
-            chunksToRemove.emplace_back(pair.first);
-            }
-    }
-    for (const auto& key : chunksToRemove) {
-        auto it = mChunks.find(key);
-        if (it != mChunks.end()) {
-            delete it->second;
-            mChunks.erase(it);
-        }
-    }
 }
 
 Chunk *Application::getChunk(int x_id, int z_id) {
-    auto pair = std::make_pair(x_id, z_id);
-    auto it = mChunks.find(pair);
+    const auto pair = std::make_pair(x_id, z_id);
+    const auto it = mChunks.find(pair);
     return it == mChunks.end() ? nullptr : it->second;
+}
+
+void Application::writeChunk(int x_id, int z_id, Chunk *chunk) {
+    mChunks.insert({std::make_pair(x_id, z_id), chunk});
+}
+
+void Application::removeChunk(int x_id, int z_id) {
+    if (mChunks.contains(std::make_pair(x_id, z_id))) {
+        delete mChunks[std::make_pair(x_id, z_id)];
+        mChunks.erase(std::make_pair(x_id, z_id));
+    }
 }

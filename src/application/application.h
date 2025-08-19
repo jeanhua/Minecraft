@@ -20,6 +20,9 @@
 
 #define MODEL_SCALE 0.05f
 
+#define CHUNK_RADIUS 8
+#define CHUNK_DIAMETER 17
+
 struct PairHash {
     template <typename T1, typename T2>
     std::size_t operator()(const std::pair<T1, T2>& p) const {
@@ -53,6 +56,8 @@ private:
     // map
     std::unordered_map<std::pair<int,int>,Chunk*,PairHash> mChunks;
     Chunk* getChunk(int x_id,int z_id);
+    void writeChunk(int x_id,int z_id,Chunk* chunk);
+    void removeChunk(int x_id,int z_id);
     // generate
     int mapSeed = 0;
     int treeSeed = 0;

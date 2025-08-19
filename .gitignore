@@ -3,6 +3,7 @@
 
 # output
 build/
+debug/
 
 # dependence
 package/
