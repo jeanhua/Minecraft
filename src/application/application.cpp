@@ -204,31 +204,18 @@ void Application::chunkUpdate() {
         }
     }
 
-    // generate chunks
-    std::vector<float> worldNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
-    std::vector<float> treeNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
-    for (int index = 0; index < aroundChunk.size(); index++) {
-        if (aroundChunk[index] != nullptr)continue;
 
-        constexpr float frequency = 0.005f;
-        worldNoiseValues.assign(CHUNK_SIZE * CHUNK_SIZE, 0.0f);
-        worldNoiseValues.assign(CHUNK_SIZE * CHUNK_SIZE, 0.0f);
-
-        int chunkX = x_id + index / CHUNK_DIAMETER;
-        int chunkZ = z_id + index % CHUNK_DIAMETER;
-        fractal->GenUniformGrid2D(worldNoiseValues.data(), chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE,
-                                  CHUNK_SIZE,CHUNK_SIZE, frequency, mapSeed);
-        fractal->GenUniformGrid2D(treeNoiseValues.data(), chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE,
-                                  CHUNK_SIZE,CHUNK_SIZE, 0.5, treeSeed);
-        auto newChunk = new Chunk(mWorldShader);
-        glm::vec3 chunkPos = glm::vec3(
-            static_cast<float>(chunkX) * aChunkSize,
-            0.0f,
-            static_cast<float>(chunkZ) * aChunkSize
-        );
-        newChunk->init(chunkPos, worldNoiseValues, treeNoiseValues);
-        writeChunk(chunkX, chunkZ, newChunk);
-        aroundChunk[index] = newChunk;
+    if (mChunkBuffer->mutex.try_lock()) {
+        if (mChunkBuffer->isRunning == false) {
+            mChunkBuffer->isRunning = true;
+            for (auto pending: mChunkBuffer->chunks) {
+                writeChunk(pending.first.first, pending.first.second, pending.second);
+            }
+            mChunkBuffer->chunks.clear();
+            mChunkBufferFuture = std::async(std::launch::async, &Application::generateChunks, this, x_id, z_id,
+                                            aroundChunk);
+        }
+        mChunkBuffer->mutex.unlock();
     }
 
     // clear far chunk
@@ -266,4 +253,46 @@ void Application::removeChunk(int x_id, int z_id) {
         delete mChunks[std::make_pair(x_id, z_id)];
         mChunks.erase(std::make_pair(x_id, z_id));
     }
+}
+
+void Application::generateChunks(int x_id, int z_id, std::vector<Chunk *> aroundChunk) const {
+    float aChunkSize = SOLID_SIZE * CHUNK_SIZE;
+    std::vector<std::future<ChunkAction> > futures;
+    uint32_t aroundSize = aroundChunk.size();
+    for (int index = 0; index < aroundSize; index++) {
+        if (aroundChunk[index] != nullptr)continue;
+        auto f = std::async(std::launch::async, [=,this]()-> ChunkAction {
+            std::vector<float> worldNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
+            std::vector<float> treeNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
+            constexpr float frequency = 0.005f;
+            worldNoiseValues.assign(CHUNK_SIZE * CHUNK_SIZE, 0.0f);
+            worldNoiseValues.assign(CHUNK_SIZE * CHUNK_SIZE, 0.0f);
+
+            const int chunkX = x_id + index / CHUNK_DIAMETER;
+            const int chunkZ = z_id + index % CHUNK_DIAMETER;
+            fractal->GenUniformGrid2D(worldNoiseValues.data(), chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE,
+                                      CHUNK_SIZE,CHUNK_SIZE, frequency, mapSeed);
+            fractal->GenUniformGrid2D(treeNoiseValues.data(), chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE,
+                                      CHUNK_SIZE,CHUNK_SIZE, 0.5, treeSeed);
+            const auto newChunk = new Chunk(mWorldShader);
+            glm::vec3 chunkPos = glm::vec3(
+                static_cast<float>(chunkX) * aChunkSize,
+                0.0f,
+                static_cast<float>(chunkZ) * aChunkSize
+            );
+            newChunk->init(chunkPos, worldNoiseValues, treeNoiseValues);
+            return ChunkAction{
+                chunkX,
+                chunkZ,
+                newChunk,
+            };
+        });
+        futures.push_back(std::move(f));
+    }
+    std::lock_guard lock(mChunkBuffer->mutex);
+    for (auto &f: futures) {
+        auto action = f.get();
+        mChunkBuffer->chunks[std::make_pair(action.chunk_x, action.chunk_z)] = action.chunk;
+    }
+    mChunkBuffer->isRunning = false;
 }

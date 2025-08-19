@@ -36,9 +36,15 @@ struct PairHash {
 
 
 struct ChunkBuffer {
-    bool finished = false;
-    std::shared_mutex mutex;
+    std::mutex mutex;
+    bool isRunning = false;
     std::unordered_map<std::pair<int,int>,Chunk*,PairHash> chunks;
+};
+
+struct ChunkAction {
+    int chunk_x;
+    int chunk_z;
+    Chunk* chunk;
 };
 
 class Application {
@@ -65,6 +71,7 @@ private:
     // map
     std::unordered_map<std::pair<int,int>,Chunk*,PairHash> mChunks;
     Chunk* getChunk(int x_id,int z_id);
+    void generateChunks(int x_id,int z_id,std::vector<Chunk *> aroundChunk) const;
     void writeChunk(int x_id,int z_id,Chunk* chunk);
     void removeChunk(int x_id,int z_id);
 
