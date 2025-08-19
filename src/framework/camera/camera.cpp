@@ -6,10 +6,24 @@
 
 #include "../../application/chunk/Chunk.h"
 
-Camera::Camera(float aspect,const std::string& projectionMatrixTarget,const std::string& viewMatrixTarget,float scale) {
+float getAngleBetweenVectors(const glm::vec3& a, const glm::vec3& b) {
+    float dotProduct = glm::dot(a, b);
+    float lengthA = glm::length(a);
+    float lengthB = glm::length(b);
+    if (lengthA == 0.0f || lengthB == 0.0f) {
+        return 0.0f;
+    }
+    float cosTheta = dotProduct / (lengthA * lengthB);
+    cosTheta = glm::clamp(cosTheta, -1.0f, 1.0f);
+    return std::acos(cosTheta);
+}
+
+Camera::Camera(float aspect, const std::string& projectionMatrixTarget,
+               const std::string& viewMatrixTarget, float scale) {
     mPosition = glm::vec3(0.0f, 100.0f, 20.0f);
     glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
     mDirectionBack = glm::normalize(mPosition - target);
+    this->mPitch = glm::degrees(glm::asin(glm::abs(mDirectionBack.y)/glm::length(mDirectionBack)));
     this->aspectRatio = aspect;
     this->viewMatrixTarget = viewMatrixTarget;
     this->projectionMatrixTarget = projectionMatrixTarget;

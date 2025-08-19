@@ -33,7 +33,7 @@ private:
     float mSpeed=1.0f;
     bool mFirstMouse=true;
     float mYaw = 90.0f;
-    float mPitch = 45.0f;
+    float mPitch = 90.0f;
     float mSensitivity = 0.05f;
     float mLastX = 0.0f, mLastY = 0.0f;
 

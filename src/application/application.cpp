@@ -174,7 +174,7 @@ void Application::update(GLFWwindow *window) {
     app->mWorldShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, -10.0f, 0.0f),MODEL_SCALE));
 
     // fog
-    app->mWorldShader->setFloat("fogDensity", 0.005f);
+    app->mWorldShader->setFloat("fogDensity", 0.002f);
     app->mWorldShader->setVec3("fogColor", 1.0f, 1.0f, 1.0f);
 
     // camera
