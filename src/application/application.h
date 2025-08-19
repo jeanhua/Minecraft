@@ -24,6 +24,7 @@
 
 #define CHUNK_RADIUS 8
 #define CHUNK_DIAMETER 17
+#define MAX_GEN_CHUNK_THREAD 10
 
 struct PairHash {
     template <typename T1, typename T2>

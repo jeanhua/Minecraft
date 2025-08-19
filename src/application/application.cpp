@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cmath>
 #include <thread>
+#include <semaphore>
 
 #include "../framework/framework.h"
 #include "../utils/utils.h"
@@ -258,10 +259,12 @@ void Application::removeChunk(int x_id, int z_id) {
 void Application::generateChunks(int x_id, int z_id, std::vector<Chunk *> aroundChunk) const {
     float aChunkSize = SOLID_SIZE * CHUNK_SIZE;
     std::vector<std::future<ChunkAction> > futures;
+    std::counting_semaphore<MAX_GEN_CHUNK_THREAD> semaphore(MAX_GEN_CHUNK_THREAD);
     uint32_t aroundSize = aroundChunk.size();
     for (int index = 0; index < aroundSize; index++) {
         if (aroundChunk[index] != nullptr)continue;
-        auto f = std::async(std::launch::async, [=,this]()-> ChunkAction {
+        semaphore.acquire();
+        auto f = std::async(std::launch::async, [&,this]()-> ChunkAction {
             std::vector<float> worldNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
             std::vector<float> treeNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
             constexpr float frequency = 0.005f;
@@ -281,6 +284,7 @@ void Application::generateChunks(int x_id, int z_id, std::vector<Chunk *> around
                 static_cast<float>(chunkZ) * aChunkSize
             );
             newChunk->init(chunkPos, worldNoiseValues, treeNoiseValues);
+            semaphore.release();
             return ChunkAction{
                 chunkX,
                 chunkZ,
