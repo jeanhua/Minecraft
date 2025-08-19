@@ -6,6 +6,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <thread>
 
 #include "../framework/framework.h"
 #include "../utils/utils.h"
