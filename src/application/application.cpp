@@ -182,7 +182,7 @@ void Application::update(GLFWwindow *window) {
     // initial global model matrix
     app->mWorldShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, -10.0f, 0.0f),MODEL_SCALE));
 
-    // fog
+    // environment
     app->mWorldShader->setFloat("fogEnd",250.0f);
 
     // camera

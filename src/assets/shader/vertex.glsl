@@ -9,10 +9,13 @@ uniform mat4 viewMatrix;
 uniform mat4 transform;
 
 uniform float fogStart = 100.0;
-uniform float fogEnd = 120.0;
+uniform float fogEnd = 250.0;
 
 out vec2 vertexUV;
 out float fogFactor;
+out vec3 normal;
+out vec3 fragPos;
+out vec3 viewPos;
 
 vec3 getCameraPos(mat4 view) {
     mat4 invView = inverse(view);
@@ -21,9 +24,17 @@ vec3 getCameraPos(mat4 view) {
 
 void main() {
     vec4 worldPos = transform * vec4(aPosition, 1.0);
-    vec3 camPos = getCameraPos(viewMatrix);
-    float dst = distance(camPos, worldPos.xyz);
+    fragPos = worldPos.xyz;
 
+    // 法线矩阵
+    mat3 normalMatrix = transpose(inverse(mat3(transform)));
+    normal = normalize(normalMatrix * aNormal);
+
+    // 相机位置
+    viewPos = getCameraPos(viewMatrix);
+
+    // 雾效
+    float dst = distance(viewPos, fragPos);
     fogFactor = clamp((fogEnd - dst) / (fogEnd - fogStart), 0.0, 1.0);
 
     gl_Position = projectionMatrix * viewMatrix * worldPos;
