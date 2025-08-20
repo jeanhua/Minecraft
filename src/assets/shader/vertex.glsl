@@ -8,7 +8,8 @@ uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 transform;
 
-uniform float fogDensity = 0.002;
+uniform float fogStart = 100.0;
+uniform float fogEnd = 120.0;
 
 out vec2 vertexUV;
 out float fogFactor;
@@ -22,8 +23,9 @@ void main() {
     vec4 worldPos = transform * vec4(aPosition, 1.0);
     vec3 camPos = getCameraPos(viewMatrix);
     float dst = distance(camPos, worldPos.xyz);
-    fogFactor = exp(-pow(fogDensity * dst, 2.0));
-    fogFactor = clamp(fogFactor, 0.0, 1.0);
+
+    fogFactor = clamp((fogEnd - dst) / (fogEnd - fogStart), 0.0, 1.0);
+
     gl_Position = projectionMatrix * viewMatrix * worldPos;
     vertexUV = aUV;
 }

@@ -67,17 +67,20 @@ void Camera::onUpdate(GLFWwindow *window, Shader &shader) {
         mPosition.y -= static_cast<float>(delta * mSpeed)/mScale;
     }
 
-    // view
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-        double x_pos, y_pos;
-        glfwGetCursorPos(window, &x_pos, &y_pos);
+    if (glfwGetKey(window,GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        onMouseMove = false;
+    }
 
-        if (mFirstMouse) {
-            mLastX = static_cast<float>(x_pos);
-            mLastY = static_cast<float>(y_pos);
-            mFirstMouse = false;
-        }
+    double x_pos, y_pos;
+    glfwGetCursorPos(window, &x_pos, &y_pos);
 
+    if (glfwGetMouseButton(window,GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
+        mLastX = static_cast<float>(x_pos);
+        mLastY = static_cast<float>(y_pos);
+        onMouseMove = true;
+    }
+
+    if (onMouseMove) {
         const float x_offset = static_cast<float>(x_pos - mLastX) * mSensitivity;
         const float y_offset = static_cast<float>(y_pos - mLastY) * mSensitivity;
         mLastX = static_cast<float>(x_pos);
@@ -94,9 +97,8 @@ void Camera::onUpdate(GLFWwindow *window, Shader &shader) {
         direction.y = sin(glm::radians(mPitch));
         direction.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPitch));
         mDirectionBack = glm::normalize(direction);
-    } else {
-        mFirstMouse = true;
     }
+
     shader.setMat4(viewMatrixTarget,getViewMatrix());
     shader.setMat4(projectionMatrixTarget,getProjectionMatrix());
 }

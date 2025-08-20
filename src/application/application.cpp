@@ -56,6 +56,7 @@ void Application::init(uint32_t width, uint32_t height, uint16_t fps) {
     glfwSetFramebufferSizeCallback(mWindow, frameBufferCallBack);
     glfwSetKeyCallback(mWindow, keyBoardCallBack);
     glfwSetMouseButtonCallback(mWindow, mouseCallBack);
+    glfwSetInputMode(mWindow,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
         std::cout << "error when load glad loader" << std::endl;
@@ -140,9 +141,15 @@ void Application::cursorPosCallBack(GLFWwindow *window, double xpos, double ypos
 }
 
 void Application::mouseCallBack(GLFWwindow *window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+    }
 }
 
 void Application::keyBoardCallBack(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_NORMAL);
+    }
 }
 
 glm::mat4 getModelPosition(glm::vec3 pos, float scale) {
@@ -176,8 +183,7 @@ void Application::update(GLFWwindow *window) {
     app->mWorldShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, -10.0f, 0.0f),MODEL_SCALE));
 
     // fog
-    app->mWorldShader->setFloat("fogDensity", 0.002f);
-    app->mWorldShader->setVec3("fogColor", 1.0f, 1.0f, 1.0f);
+    app->mWorldShader->setFloat("fogEnd",250.0f);
 
     // camera
     app->mCamera->onUpdate(window, *app->mWorldShader);
