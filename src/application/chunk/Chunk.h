@@ -76,6 +76,8 @@ private:
     [[nodiscard]] bool isSolid(uint16_t x, uint16_t y, uint16_t z) const;
 
     void addBlockFaces(uint16_t block, int bx, int by, int bz, const bool neighbors[6]);
+
+    std::vector<uint16_t> chunkHeight;
 };
 
 #endif //MINECRAFT_CHUNK_H

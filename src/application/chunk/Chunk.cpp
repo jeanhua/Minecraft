@@ -253,13 +253,14 @@ std::vector<glm::vec2> getUVPosition(uint16_t block) {
 
 void Chunk::init(const glm::vec3 &position,const std::vector<float>& mapNoise,const std::vector<float>& treeNoise) {
     initialPosition = position;
+    chunkHeight.resize(CHUNK_SIZE*CHUNK_SIZE);
     // test
     for (uint16_t i = 0; i < CHUNK_SIZE; i++) {
         for (uint16_t j = 0; j < CHUNK_SIZE; j++) {
             float noiseValue = mapNoise[i*CHUNK_SIZE + j];
             float normalizedNoise = (noiseValue+1)/4.0f;
             int terrainHeight = static_cast<int>(normalizedNoise * CHUNK_HEIGHT);
-
+            chunkHeight[i*CHUNK_SIZE + j] = terrainHeight;
             for (uint16_t k = 0; k < CHUNK_HEIGHT; k++) {
                 // world
                 if (k<terrainHeight) {
@@ -322,7 +323,7 @@ Chunk::Chunk(Shader *shader) {
 
 bool Chunk::isSolid(const uint16_t x, const uint16_t y, const uint16_t z) const {
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_HEIGHT) {
-        return false;
+        return true;
     }
     return (mChunk[x][y][z]&FULL_SOLID)!=0;
 }
@@ -335,7 +336,6 @@ void Chunk::generateMesh() {
         for (uint16_t j = 0; j < CHUNK_SIZE; j++) {
             for (uint16_t k = 0; k < CHUNK_HEIGHT; k++) {
                 if (mChunk[i][j][k] == AIR) continue;
-
                 bool neighbors[6] = {
                     isSolid(i, j, k + 1), // top
                     isSolid(i, j, k - 1), // bottom
@@ -345,11 +345,18 @@ void Chunk::generateMesh() {
                     isSolid(i, j - 1, k) // left
                 };
 
+                if (i==0||j==0||i==CHUNK_SIZE-1||j==CHUNK_SIZE-1) {
+                    if (k==chunkHeight[i*CHUNK_SIZE+j] || k==chunkHeight[i*CHUNK_SIZE+j]-1) {
+                        for (bool & neighbor : neighbors) {
+                            neighbor = false;
+                        }
+                    }
+                }
+
                 addBlockFaces(mChunk[i][j][k],i, j, k, neighbors);
             }
         }
     }
-
 
     if (mVAO != 0) {
         glDeleteVertexArrays(1, &mVAO);
