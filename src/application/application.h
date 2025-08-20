@@ -8,10 +8,8 @@
 #include <future>
 #include <random>
 #include <unordered_map>
-#include <set>
 #include <utility>
 #include <FastNoise/FastNoise.h>
-#include <shared_mutex>
 
 #include "../core.h"
 #include "../framework/shader/shader.h"
@@ -20,6 +18,7 @@
 #include "../framework/camera/camera.h"
 #include "skybox/skybox.h"
 #include "chunk/Chunk.h"
+#include "task/render_task.hpp"
 
 #define MODEL_SCALE 0.05f
 
@@ -34,19 +33,6 @@ struct PairHash {
         auto hash2 = std::hash<T2>{}(p.second);
         return hash1 ^ (hash2 << 1);
     }
-};
-
-
-struct ChunkBuffer {
-    std::mutex mutex;
-    bool isRunning = false;
-    std::unordered_map<std::pair<int,int>,Chunk*,PairHash> chunks;
-};
-
-struct ChunkAction {
-    int chunk_x;
-    int chunk_z;
-    Chunk* chunk;
 };
 
 class Application {
@@ -73,12 +59,14 @@ private:
     // map
     std::unordered_map<std::pair<int,int>,Chunk*,PairHash> mChunks;
     Chunk* getChunk(int x_id,int z_id);
-    void generateMissingChunks(const std::vector<std::pair<int, int>>& missingChunks) const;
+    void generateMissingChunks(const std::vector<std::pair<int, int>>& missingChunks);
     void writeChunk(int x_id,int z_id,Chunk* chunk);
     void removeChunk(int x_id,int z_id);
 
-    ChunkBuffer* mChunkBuffer = nullptr;
-    std::future<void> mChunkBufferFuture;
+
+    // render pool
+    int waitingChunks=0;
+    ThreadPool<ChunkAction,RenderParam>* renderPool=nullptr;
 
     // generate
     int mapSeed = 0;

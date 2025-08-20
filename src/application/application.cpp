@@ -6,8 +6,8 @@
 
 #include <chrono>
 #include <cmath>
-#include <thread>
-#include <semaphore>
+#include <set>
+#include <shared_mutex>
 
 #include "../framework/framework.h"
 #include "../utils/utils.h"
@@ -24,13 +24,14 @@ Application *Application::create() {
 }
 
 Application::~Application() {
+    renderPool->stop();
+    delete renderPool;
     delete mWorldShader;
     delete mWorldTexture;
     delete mCamera;
     delete mSkyboxShader;
     delete mSkyboxTexture;
     delete mSkybox;
-    delete mChunkBuffer;
     for (auto chunk: mChunks) {
         delete chunk.second;
     }
@@ -99,8 +100,9 @@ void Application::init(uint32_t width, uint32_t height, uint16_t fps) {
     fractal->SetGain(0.5f);
     fractal->SetLacunarity(2.0f);
 
-    // chunkBuffer
-    mChunkBuffer = new ChunkBuffer();
+    // thread pool
+    renderPool = new ThreadPool<ChunkAction, RenderParam>();
+    renderPool->init(MAX_GEN_CHUNK_THREAD);
 }
 
 void Application::run() const {
@@ -227,33 +229,30 @@ void Application::chunkUpdate() {
         }
     }
 
-    if (mChunkBuffer->mutex.try_lock()) {
-        if (mChunkBuffer->isRunning == false) {
-            mChunkBuffer->isRunning = true;
-            for (auto& pending : mChunkBuffer->chunks) {
-                writeChunk(pending.first.first, pending.first.second, pending.second);
-            }
-            mChunkBuffer->chunks.clear();
-
-            std::vector<std::pair<int, int>> missingChunks;
-            for (int i = 0; i < CHUNK_DIAMETER; i++) {
-                for (int k = 0; k < CHUNK_DIAMETER; k++) {
-                    int chunkX = x_id + i;
-                    int chunkZ = z_id + k;
-                    if (getChunk(chunkX, chunkZ) == nullptr) {
-                        missingChunks.emplace_back(chunkX, chunkZ);
-                    }
+    if (waitingChunks==0) {
+        std::vector<std::pair<int, int>> missingChunks;
+        for (int i = 0; i < CHUNK_DIAMETER; i++) {
+            for (int k = 0; k < CHUNK_DIAMETER; k++) {
+                int chunkX = x_id + i;
+                int chunkZ = z_id + k;
+                if (getChunk(chunkX, chunkZ) == nullptr) {
+                    missingChunks.emplace_back(chunkX, chunkZ);
                 }
             }
-
-            if (!missingChunks.empty()) {
-                mChunkBufferFuture = std::async(std::launch::async,
-                    &Application::generateMissingChunks, this, missingChunks);
-            } else {
-                mChunkBuffer->isRunning = false;
-            }
         }
-        mChunkBuffer->mutex.unlock();
+        if (!missingChunks.empty()) {
+            generateMissingChunks(missingChunks);
+        }
+    }
+
+
+    // get output
+    auto finishedChunks = renderPool->getOutput();
+    if (!finishedChunks.empty()) {
+        for (auto& chunk : finishedChunks) {
+            writeChunk(chunk.chunk_x, chunk.chunk_z, chunk.chunk);
+            waitingChunks--;
+        }
     }
 
     std::vector<std::pair<int, int>> chunksToRemove;
@@ -274,51 +273,12 @@ void Application::chunkUpdate() {
     }
 }
 
-void Application::generateMissingChunks(const std::vector<std::pair<int, int>>& missingChunks) const {
-    float aChunkSize = SOLID_SIZE * CHUNK_SIZE;
-    std::vector<std::future<ChunkAction>> futures;
-    std::counting_semaphore<MAX_GEN_CHUNK_THREAD> semaphore(MAX_GEN_CHUNK_THREAD);
-
+void Application::generateMissingChunks(const std::vector<std::pair<int, int>>& missingChunks){
     for (const auto& chunkCoord : missingChunks) {
-        semaphore.acquire();
-        auto f = std::async(std::launch::async, [&, this, chunkCoord]() -> ChunkAction {
-            std::vector<float> worldNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
-            std::vector<float> treeNoiseValues(CHUNK_SIZE * CHUNK_SIZE);
-            constexpr float frequency = 0.005f;
-
-            worldNoiseValues.assign(CHUNK_SIZE * CHUNK_SIZE, 0.0f);
-            treeNoiseValues.assign(CHUNK_SIZE * CHUNK_SIZE, 0.0f);
-
-            const int chunkX = chunkCoord.first;
-            const int chunkZ = chunkCoord.second;
-
-            fractal->GenUniformGrid2D(worldNoiseValues.data(), chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE,
-                                      CHUNK_SIZE, CHUNK_SIZE, frequency, mapSeed);
-            fractal->GenUniformGrid2D(treeNoiseValues.data(), chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE,
-                                      CHUNK_SIZE, CHUNK_SIZE, 0.5, treeSeed);
-
-            const auto newChunk = new Chunk(mWorldShader);
-            glm::vec3 chunkPos = glm::vec3(
-                static_cast<float>(chunkX) * aChunkSize,
-                0.0f,
-                static_cast<float>(chunkZ) * aChunkSize
-            );
-            newChunk->init(chunkPos, worldNoiseValues, treeNoiseValues);
-            semaphore.release();
-
-            return ChunkAction{
-                chunkX,
-                chunkZ,
-                newChunk,
-            };
-        });
-        futures.push_back(std::move(f));
+        waitingChunks++;
+        renderPool->addTask(std::make_shared<render_task>(render_task(RenderParam{
+            chunkCoord.first, chunkCoord.second,
+            fractal, mWorldShader,mapSeed,treeSeed
+        })));
     }
-
-    std::lock_guard lock(mChunkBuffer->mutex);
-    for (auto &f : futures) {
-        auto action = f.get();
-        mChunkBuffer->chunks[std::make_pair(action.chunk_x, action.chunk_z)] = action.chunk;
-    }
-    mChunkBuffer->isRunning = false;
 }
