@@ -20,7 +20,7 @@ TextureCube::TextureCube(const std::vector<std::string>& paths,unsigned int unit
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(false);
     for (unsigned int i = 0; i < paths.size(); i++) {
-        unsigned char* data = stbi_load(paths[i].c_str(), &width, &height, &nrChannels, 0);
+        unsigned char* data = stbi_load(paths[i].c_str(), &width, &height, &nrChannels, STBI_default);
         if (data!=nullptr) {
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         }else {

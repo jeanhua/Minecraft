@@ -7,7 +7,7 @@
 
 #include "task.hpp"
 #include "../chunk/Chunk.h"
-
+#include <FastNoise/FastNoise.h>
 
 struct RenderParam{
     int chunk_x;
