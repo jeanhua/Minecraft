@@ -56,6 +56,9 @@ public:
     void init(const glm::vec3 &position,const std::vector<float>& mapNoise,const std::vector<float>& treeNoise);
 
     [[nodiscard]] glm::vec3 getPosition()const;
+    [[nodiscard]] uint16_t getBlock(int x, int y,int z)const;
+    void setBlock(int x, int y, int z, uint16_t block);
+    void setModified(bool modified);
 
     void render();
 

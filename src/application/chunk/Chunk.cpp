@@ -265,10 +265,8 @@ void Chunk::init(const glm::vec3 &position,const std::vector<float>& mapNoise,co
                 // world
                 if (k<terrainHeight) {
                     mChunk[i][j][k] = DIRT;
-                }else if (k==terrainHeight && normalizedNoise>0.16) {
-                    mChunk[i][j][k] = GRASS_STONE;
                 }else if (k==terrainHeight) {
-                    mChunk[i][j][k] = DIRT;
+                    mChunk[i][j][k] = GRASS_STONE;
                 }
             }
 
@@ -309,6 +307,8 @@ void Chunk::init(const glm::vec3 &position,const std::vector<float>& mapNoise,co
 
 void Chunk::render() {
     if (needUpdate)generateMesh();
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
     glBindVertexArray(mVAO);
     glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
@@ -496,4 +496,18 @@ void Chunk::addBlockFaces(uint16_t block,int bx, int by, int bz, const bool neig
                            base, base + 2, base + 3
                        });
     }
+}
+
+uint16_t Chunk::getBlock(int x, int y, int z) const {
+    // different coordinate system
+    return mChunk[z][x][y];
+}
+
+void Chunk::setBlock(int x, int y, int z, const uint16_t block) {
+    if (x<0||y<0||z<0||x>=CHUNK_SIZE||y>=CHUNK_HEIGHT||z>=CHUNK_SIZE) return;
+    mChunk[z][x][y] = block;
+}
+
+void Chunk::setModified(bool modified) {
+    needUpdate = modified;
 }

@@ -22,8 +22,8 @@
 
 #define MODEL_SCALE 0.05f
 
-#define CHUNK_RADIUS 8
-#define CHUNK_DIAMETER 17
+#define CHUNK_RADIUS 10
+#define CHUNK_DIAMETER 21
 #define MAX_GEN_CHUNK_THREAD 10
 
 struct PairHash {
@@ -57,12 +57,14 @@ private:
     uint16_t mFPS = 120;
 
     // map
+    bool initial = false;
+    int currentCenterX=0, currentCenterZ=0;
     std::unordered_map<std::pair<int,int>,Chunk*,PairHash> mChunks;
     Chunk* getChunk(int x_id,int z_id);
+    std::vector<ChunkAction>chunkBuffer;
     void generateMissingChunks(const std::vector<std::pair<int, int>>& missingChunks);
     void writeChunk(int x_id,int z_id,Chunk* chunk);
     void removeChunk(int x_id,int z_id);
-
 
     // render pool
     int waitingChunks=0;

@@ -65,9 +65,6 @@ void Application::init(uint32_t width, uint32_t height, uint16_t fps) {
     glViewport(0, 0, 800, 600);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-
     std::cout << "Start to compile world shader program..." << std::endl;
     mWorldShader = new Shader("assets/shader/vertex.glsl", "assets/shader/fragment.glsl");
     if (mWorldShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
@@ -136,7 +133,8 @@ void Application::run() const {
             accumulatedTime = 0.0;
             lastTitleUpdate = frameStartTime;
         }
-        while (glfwGetTime() - frameStartTime < frameTime) {}
+        while (glfwGetTime() - frameStartTime < frameTime) {
+        }
         lastTime = frameStartTime;
     }
 
@@ -154,8 +152,13 @@ void Application::cursorPosCallBack(GLFWwindow *window, double xpos, double ypos
 }
 
 void Application::mouseCallBack(GLFWwindow *window, int button, int action, int mods) {
+    auto *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
+
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+        // destroy block
+    }
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+        // put block
     }
 }
 
@@ -196,7 +199,7 @@ void Application::update(GLFWwindow *window) {
     app->mWorldShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, -10.0f, 0.0f),MODEL_SCALE));
 
     // environment
-    app->mWorldShader->setFloat("fogEnd",250.0f);
+    app->mWorldShader->setFloat("fogEnd", 250.0f);
 
     // camera
     app->mCamera->onUpdate(window, *app->mWorldShader);
@@ -236,20 +239,22 @@ void Application::chunkUpdate() {
     int x_id = static_cast<int>(std::floor(cameraPos.x / aChunkSize)) - CHUNK_RADIUS;
     int z_id = static_cast<int>(std::floor(cameraPos.z / aChunkSize)) - CHUNK_RADIUS;
 
-    std::vector<Chunk *> aroundChunk;
-    std::set<std::pair<int, int>> requiredChunks; // 用于跟踪需要的区块
-    aroundChunk.reserve(CHUNK_DIAMETER * CHUNK_DIAMETER);
+    if (initial==false) {
+        initial=true;
+        currentCenterX = 114514;
+        currentCenterZ = 114514;
+    }
+
+    std::set<std::pair<int, int> > requiredChunks; // 用于跟踪需要的区块
 
     for (int i = x_id; i < x_id + CHUNK_DIAMETER; i++) {
         for (int k = z_id; k < z_id + CHUNK_DIAMETER; k++) {
             requiredChunks.insert({i, k});
-            auto chunk = getChunk(i, k);
-            aroundChunk.push_back(chunk);
         }
     }
 
-    if (waitingChunks==0) {
-        std::vector<std::pair<int, int>> missingChunks;
+    if (waitingChunks == 0&&(std::abs(x_id+CHUNK_RADIUS-currentCenterX)>2||std::abs(z_id+CHUNK_RADIUS-currentCenterZ)>2)) {
+        std::vector<std::pair<int, int> > missingChunks;
         for (int i = 0; i < CHUNK_DIAMETER; i++) {
             for (int k = 0; k < CHUNK_DIAMETER; k++) {
                 int chunkX = x_id + i;
@@ -268,36 +273,42 @@ void Application::chunkUpdate() {
     // get output
     auto finishedChunks = renderPool->getOutput();
     if (!finishedChunks.empty()) {
-        for (auto& chunk : finishedChunks) {
-            writeChunk(chunk.chunk_x, chunk.chunk_z, chunk.chunk);
-            waitingChunks--;
+        chunkBuffer.insert(chunkBuffer.end(), finishedChunks.begin(), finishedChunks.end());
+    }
+
+    if (!chunkBuffer.empty()) {
+        auto chunk = chunkBuffer.back();
+        chunkBuffer.pop_back();
+        writeChunk(chunk.chunk_x, chunk.chunk_z, chunk.chunk);
+        waitingChunks--;
+        currentCenterX = x_id+CHUNK_RADIUS;
+        currentCenterZ = z_id+CHUNK_RADIUS;
+
+        // clear
+        std::vector<std::pair<int, int> > chunksToRemove;
+        for (const auto &pair: mChunks) {
+            if (requiredChunks.find(pair.first) == requiredChunks.end()) {
+                chunksToRemove.push_back(pair.first);
+            }
+        }
+        for (const auto &key: chunksToRemove) {
+            removeChunk(key.first, key.second);
         }
     }
 
-    std::vector<std::pair<int, int>> chunksToRemove;
-    for (const auto &pair : mChunks) {
-        if (requiredChunks.find(pair.first) == requiredChunks.end()) {
-            chunksToRemove.push_back(pair.first);
-        }
-    }
-
-    for (const auto &key : chunksToRemove) {
-        removeChunk(key.first, key.second);
-    }
-
-    for (auto chunk : aroundChunk) {
-        if (chunk != nullptr) {
-            chunk->render();
+    for (auto chunk: mChunks) {
+        if (chunk.second != nullptr) {
+            chunk.second->render();
         }
     }
 }
 
-void Application::generateMissingChunks(const std::vector<std::pair<int, int>>& missingChunks){
-    for (const auto& chunkCoord : missingChunks) {
+void Application::generateMissingChunks(const std::vector<std::pair<int, int> > &missingChunks) {
+    for (const auto &chunkCoord: missingChunks) {
         waitingChunks++;
         renderPool->addTask(std::make_shared<render_task>(render_task(RenderParam{
             chunkCoord.first, chunkCoord.second,
-            fractal, mWorldShader,mapSeed,treeSeed
+            fractal, mWorldShader, mapSeed, treeSeed
         })));
     }
 }

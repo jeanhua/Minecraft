@@ -75,9 +75,12 @@ void Camera::onUpdate(GLFWwindow *window, Shader &shader) {
     glfwGetCursorPos(window, &x_pos, &y_pos);
 
     if (glfwGetMouseButton(window,GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
-        mLastX = static_cast<float>(x_pos);
-        mLastY = static_cast<float>(y_pos);
-        onMouseMove = true;
+        if (onMouseMove==false) {
+            onMouseMove = true;
+            mLastX = static_cast<float>(x_pos);
+            mLastY = static_cast<float>(y_pos);
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
     }
 
     if (onMouseMove) {
@@ -109,4 +112,8 @@ void Camera::setAspectRatio(float aspect) {
 
 glm::vec3 Camera::getPosition() const {
     return mPosition;
+}
+
+glm::vec3 Camera::getFront() const {
+    return -mDirectionBack;
 }
