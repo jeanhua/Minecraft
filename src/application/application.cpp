@@ -108,25 +108,38 @@ void Application::init(uint32_t width, uint32_t height, uint16_t fps) {
 
 void Application::run() const {
     double lastTime = glfwGetTime();
+    double lastTitleUpdate = lastTime;
     const double frameTime = 1.0 / mFPS;
+    const double titleUpdateInterval = 0.5; // 每0.5秒更新一次标题
+
+    int frameCount = 0;
+    double accumulatedTime = 0.0;
 
     while (!glfwWindowShouldClose(mWindow)) {
-        double currentTime = glfwGetTime();
-        double deltaTime = currentTime - lastTime;
-        lastTime = currentTime;
+        double frameStartTime = glfwGetTime();
+        double deltaTime = frameStartTime - lastTime;
 
-        // FPS control
-        if (deltaTime < frameTime) {
-            double sleepTime = (frameTime - deltaTime) * 1000;
-            std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<long long>(sleepTime)));
-        }
-
-        // Frame processing
         glfwPollEvents();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         update(mWindow);
         glfwSwapBuffers(mWindow);
+
+        frameCount++;
+        accumulatedTime += deltaTime;
+
+        if (frameStartTime - lastTitleUpdate >= titleUpdateInterval) {
+            double avgFPS = frameCount / accumulatedTime;
+            std::string title = "Minecraft FPS: " + std::to_string(static_cast<int>(avgFPS + 0.5));
+            glfwSetWindowTitle(mWindow, title.c_str());
+
+            frameCount = 0;
+            accumulatedTime = 0.0;
+            lastTitleUpdate = frameStartTime;
+        }
+        while (glfwGetTime() - frameStartTime < frameTime) {}
+        lastTime = frameStartTime;
     }
+
     glfwTerminate();
     std::cout << "Game over, bye!" << std::endl;
 }
