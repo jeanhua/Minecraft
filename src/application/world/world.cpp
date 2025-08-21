@@ -90,14 +90,16 @@ void world::writeChunk(int x_id, int z_id, Chunk *chunk) {
 }
 
 void world::generateMissingChunks(const std::vector<std::pair<int, int> > &missingChunks) {
-    for (const auto &chunkCoord: missingChunks) {
+    std::vector<std::shared_ptr<Task<ChunkAction,RenderParam>>> preRenderTasks;
+    for (const auto &[fst, snd]: missingChunks) {
         waitingChunks++;
         auto task = render_task(RenderParam{
-            chunkCoord.first, chunkCoord.second,
+            fst, snd,
             fractal, mWorldShader, mapSeed, treeSeed
         });
-        renderPool->addTask(std::make_shared<render_task>(task));
+        preRenderTasks.push_back(std::make_shared<render_task>(task));
     }
+    renderPool->addTask(std::move(preRenderTasks));
 }
 
 void world::setAspectRatio(float radio) const {

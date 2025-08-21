@@ -34,6 +34,7 @@ public:
     void init(uint32_t maxThreadNumber = 5);
     void stop();
     void addTask(std::shared_ptr<Task<retType,inType>> task);
+    void addTask(std::vector<std::shared_ptr<Task<retType,inType>>>&& task);
     void clear();
 
     std::vector<retType>&& getOutput();
@@ -118,6 +119,15 @@ void ThreadPool<retType,inType>::addTask(std::shared_ptr<Task<retType,inType>> t
     m_taskList.push_back(task);
     m_cv.notify_one();
 }
+
+template<typename retType, typename inType>
+void ThreadPool<retType, inType>::addTask(std::vector<std::shared_ptr<Task<retType, inType> > > &&task) {
+    int size = task.size();
+    std::unique_lock lock(m_mutex);
+    m_taskList.insert(m_taskList.end(), task.begin(), task.end());
+    for (int i = 0; i < size; i++) m_cv.notify_one();
+}
+
 
 template<typename retType,typename inType>
 void ThreadPool<retType,inType>::clear() {
