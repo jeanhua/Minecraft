@@ -5,10 +5,11 @@
 #ifndef MINECRAFT_CHUNK_H
 #define MINECRAFT_CHUNK_H
 
-#include "../../core.h"
+#include "../../framework/framework.h"
 #include "../../framework/shader/shader.h"
 #include <array>
 #include <vector>
+#include <unordered_map>
 
 #define SOLID_SIZE 20.0f
 #define CHUNK_SIZE 16
@@ -41,16 +42,19 @@
 
 #define HALF_SOLID  0b0000100000000000
 
-using Vertex = struct {
-    float x, y, z;
-    float nx, ny, nz;
-    float u, v;
+
+struct PairHash {
+    template <typename T1, typename T2>
+    std::size_t operator()(const std::pair<T1, T2>& p) const {
+        auto hash1 = std::hash<T1>{}(p.first);
+        auto hash2 = std::hash<T2>{}(p.second);
+        return hash1 ^ (hash2 << 1);
+    }
 };
 
 class Chunk {
 public:
-    explicit Chunk(Shader *shader);
-
+    explicit Chunk(Shader *shader,int x_id,int z_id);
     ~Chunk();
 
     void init(const glm::vec3 &position,const std::vector<float>& mapNoise,const std::vector<float>& treeNoise);
@@ -60,11 +64,13 @@ public:
     void setBlock(int x, int y, int z, uint16_t block);
     void setModified(bool modified);
 
-    void render();
+    void render(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks);
 
 private:
     GLuint mVAO, mVBO, mEBO;
     bool needUpdate;
+
+    int x_id,z_id;
 
     Shader *mShader;
     glm::vec3 initialPosition{0.0f,0.0f,0.0f};
@@ -74,13 +80,13 @@ private:
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
-    void generateMesh();
+    unsigned int indicesCount=0;
 
-    [[nodiscard]] bool isSolid(uint16_t x, uint16_t y, uint16_t z) const;
+    void generateMesh(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks);
+
+    [[nodiscard]] bool isSolid(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks,int x, int y, int z) const;
 
     void addBlockFaces(uint16_t block, int bx, int by, int bz, const bool neighbors[6]);
-
-    std::vector<uint16_t> chunkHeight;
 };
 
 #endif //MINECRAFT_CHUNK_H

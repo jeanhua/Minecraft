@@ -5,7 +5,6 @@
 #include "world.h"
 
 #include <chrono>
-#include <shared_mutex>
 #include <set>
 
 #include "../../utils/utils.h"
@@ -20,7 +19,7 @@ glm::mat4 getModelPosition(glm::vec3 pos, float scale) {
 
 world::world() {
     std::cout << "Start to compile world shader program..." << std::endl;
-    mWorldShader = new Shader("assets/shader/vertex.glsl", "assets/shader/fragment.glsl");
+    mWorldShader = new Shader("assets/shader/vertex_world.glsl", "assets/shader/fragment_world.glsl");
     if (mWorldShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
     mWorldTexture = new Texture2D("assets/texture/textures.png", 0);
     mCamera = new Camera(4.0f / 3.0f, "projectionMatrix", "viewMatrix",MODEL_SCALE);
@@ -52,6 +51,9 @@ world::world() {
     // thread pool
     renderPool = new ThreadPool<ChunkAction, RenderParam>();
     renderPool->init(MAX_GEN_CHUNK_THREAD);
+
+    // user interface
+    userInterface = new UserInterface(mWorldTexture);
 }
 
 world::~world() {
@@ -63,6 +65,7 @@ world::~world() {
     delete mSkyboxShader;
     delete mSkyboxTexture;
     delete mSkybox;
+    delete userInterface;
     for (auto chunk: mChunks) {
         delete chunk.second;
     }
@@ -87,6 +90,7 @@ void world::writeChunk(int x_id, int z_id, Chunk *chunk) {
         mChunks.erase(std::make_pair(x_id, z_id));
     }
     mChunks.insert({std::make_pair(x_id, z_id), chunk});
+    noticeAroundChunk(x_id, z_id);
 }
 
 void world::generateMissingChunks(const std::vector<std::pair<int, int> > &missingChunks) {
@@ -121,7 +125,7 @@ void world::render(GLFWwindow* window) {
     // world
     mWorldTexture->bind();
     mWorldShader->begin();
-    mWorldShader->setInt("sampler", 0);
+    mWorldShader->setInt("world_sampler", 0);
 
     // initial global model matrix
     mWorldShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, -10.0f, 0.0f),MODEL_SCALE));
@@ -136,6 +140,9 @@ void world::render(GLFWwindow* window) {
     chunkUpdate();
 
     Shader::end();
+
+    // user interface
+    //userInterface->render();
 }
 
 void world::chunkUpdate() {
@@ -205,7 +212,27 @@ void world::chunkUpdate() {
 
     for (auto chunk: mChunks) {
         if (chunk.second != nullptr) {
-            chunk.second->render();
+            chunk.second->render(mChunks);
         }
     }
+}
+
+
+uint16_t world::getBlock(int Chunk_X_ID, int Chunk_Z_ID, int x, int y, int z) {
+    auto chunk = getChunk(Chunk_X_ID,Chunk_Z_ID);
+    if (chunk == nullptr) {
+        return 0;
+    }
+    return chunk->getBlock(x, y, z);
+}
+
+void world::noticeAroundChunk(int x_id, int z_id) {
+    const auto left = getChunk(x_id-1, z_id);
+    const auto right = getChunk(x_id+1, z_id);
+    const auto front  = getChunk(x_id, z_id+1);
+    const auto back   = getChunk(x_id, z_id-1);
+    if (left!=nullptr)left->setModified(true);
+    if (right!=nullptr)right->setModified(true);
+    if (front!=nullptr)front->setModified(true);
+    if (back!=nullptr)back->setModified(true);
 }

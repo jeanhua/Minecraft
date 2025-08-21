@@ -12,6 +12,7 @@
 #include "../skybox/skybox.h"
 #include "../chunk/Chunk.h"
 #include "../task/render_task.hpp"
+#include "../user_interface/user_interface.h"
 
 #include <unordered_map>
 #include <FastNoise/SmartNode.h>
@@ -25,15 +26,6 @@
 #define CHUNK_RADIUS 10
 #define CHUNK_DIAMETER 21
 #define MAX_GEN_CHUNK_THREAD 10
-
-struct PairHash {
-    template <typename T1, typename T2>
-    std::size_t operator()(const std::pair<T1, T2>& p) const {
-        auto hash1 = std::hash<T1>{}(p.first);
-        auto hash2 = std::hash<T2>{}(p.second);
-        return hash1 ^ (hash2 << 1);
-    }
-};
 
 
 class world {
@@ -65,6 +57,9 @@ private:
     void writeChunk(int x_id,int z_id,Chunk* chunk);
     void removeChunk(int x_id,int z_id);
 
+    uint16_t getBlock(int Chunk_X_ID,int Chunk_Z_ID,int x,int y,int z);
+    void noticeAroundChunk(int x_id,int z_id);
+
     // render pool
     int waitingChunks=0;
     ThreadPool<ChunkAction,RenderParam>* renderPool=nullptr;
@@ -74,6 +69,9 @@ private:
     int treeSeed = 0;
     FastNoise::SmartNode<FastNoise::Perlin> perlin;
     FastNoise::SmartNode<FastNoise::FractalFBm> fractal;
+
+    // ui
+    UserInterface* userInterface=nullptr;
 };
 
 

@@ -8,5 +8,15 @@
 #include "../core.h"
 #include <vector>
 
+using Vertex = struct {
+    float x, y, z;
+    float nx, ny, nz;
+    float u, v;
+};
+
+using VertexSimple = struct {
+    float x, y, z;
+    float u, v;
+};
 
 #endif //MINECRAFT_FRAMEWORK_H

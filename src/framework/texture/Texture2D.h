@@ -11,7 +11,7 @@ public:
 	Texture2D(const std::string& path, unsigned int unit);
 	~Texture2D();
 
-	void bind();
+	void bind()const;
 private:
 	GLuint mTexture = 0;
 	int mWidth = 0;

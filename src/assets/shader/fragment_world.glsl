@@ -6,7 +6,7 @@ in vec3 normal;
 in vec3 fragPos;
 in vec3 viewPos;
 
-uniform sampler2D sampler;
+uniform sampler2D world_sampler;
 uniform vec3 fogColor=vec3(1.0f,1.0f, 1.0f);
 
 uniform vec3 lightDir=vec3(-0.50, -1.0, 0.2);
@@ -34,7 +34,7 @@ void main() {
     vec3 specular = specularStrength * spec * lightColor;
 
     // 组合光照
-    vec4 texColor = texture(sampler, vertexUV);
+    vec4 texColor = texture(world_sampler, vertexUV);
     vec3 lighting = (ambient + diffuse + specular) * texColor.rgb;
 
     // fog

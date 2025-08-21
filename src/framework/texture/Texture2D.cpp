@@ -36,7 +36,7 @@ Texture2D::~Texture2D()
 	}
 }
 
-void Texture2D::bind()
+void Texture2D::bind()const
 {
 	glActiveTexture(GL_TEXTURE0 + mUnit);
 	glBindTexture(GL_TEXTURE_2D, mTexture);

@@ -3,7 +3,6 @@
 //
 
 #include "Chunk.h"
-#include "../../utils/utils.h"
 
 glm::vec3 Chunk::getPosition()const {
     return initialPosition;
@@ -253,14 +252,11 @@ std::vector<glm::vec2> getUVPosition(uint16_t block) {
 
 void Chunk::init(const glm::vec3 &position,const std::vector<float>& mapNoise,const std::vector<float>& treeNoise) {
     initialPosition = position;
-    chunkHeight.resize(CHUNK_SIZE*CHUNK_SIZE);
-    // test
     for (uint16_t i = 0; i < CHUNK_SIZE; i++) {
         for (uint16_t j = 0; j < CHUNK_SIZE; j++) {
             float noiseValue = mapNoise[i*CHUNK_SIZE + j];
             float normalizedNoise = (noiseValue+1)/4.0f;
             int terrainHeight = static_cast<int>(normalizedNoise * CHUNK_HEIGHT);
-            chunkHeight[i*CHUNK_SIZE + j] = terrainHeight;
             for (uint16_t k = 0; k < CHUNK_HEIGHT; k++) {
                 // world
                 if (k<terrainHeight) {
@@ -305,53 +301,67 @@ void Chunk::init(const glm::vec3 &position,const std::vector<float>& mapNoise,co
 }
 
 
-void Chunk::render() {
-    if (needUpdate)generateMesh();
+void Chunk::render(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks) {
+    if (needUpdate)generateMesh(chunks);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glBindVertexArray(mVAO);
-    glDrawElements(GL_TRIANGLES, static_cast<int>(indices.size()), GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, static_cast<int>(indicesCount), GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
 }
 
-Chunk::Chunk(Shader *shader) {
+Chunk::Chunk(Shader *shader,int x_id,int z_id) {
     mVAO = mVBO = mEBO = 0;
     needUpdate = true;
     mShader = shader;
-
+    this->x_id = x_id;
+    this->z_id = z_id;
 }
 
-bool Chunk::isSolid(const uint16_t x, const uint16_t y, const uint16_t z) const {
-    if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_HEIGHT) {
-        return true;
+bool Chunk::isSolid(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks,const int x, const int y, const int z) const {
+    if (z < 0 || z >= CHUNK_HEIGHT) {
+        return z<0;
+    }
+
+    if (x<0) {
+        auto another = chunks.find({x_id,z_id-1});
+        if (another==chunks.end()) return true;
+        return another->second->isSolid(chunks,CHUNK_SIZE-1,y,z);
+    }
+    if (x>=CHUNK_SIZE) {
+        auto another = chunks.find({x_id,z_id+1});
+        if (another==chunks.end()) return true;
+        return another->second->isSolid(chunks,0,y,z);
+    }
+    if (y<0) {
+        auto another = chunks.find({x_id-1,z_id});
+        if (another==chunks.end()) return true;
+        return another->second->isSolid(chunks,x,CHUNK_SIZE-1,z);
+    }
+    if (y>=CHUNK_SIZE) {
+        auto another = chunks.find({x_id+1,z_id});
+        if (another==chunks.end()) return true;
+        return another->second->isSolid(chunks,x,0,z);
     }
     return (mChunk[x][y][z]&FULL_SOLID)!=0;
 }
 
-void Chunk::generateMesh() {
+void Chunk::generateMesh(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks) {
     vertices.clear();
     indices.clear();
 
-    for (uint16_t i = 0; i < CHUNK_SIZE; i++) {
-        for (uint16_t j = 0; j < CHUNK_SIZE; j++) {
-            for (uint16_t k = 0; k < CHUNK_HEIGHT; k++) {
+    for (int i = 0; i < CHUNK_SIZE; i++) {
+        for (int j = 0; j < CHUNK_SIZE; j++) {
+            for (int k = 0; k < CHUNK_HEIGHT; k++) {
                 if (mChunk[i][j][k] == AIR) continue;
                 bool neighbors[6] = {
-                    isSolid(i, j, k + 1), // top
-                    isSolid(i, j, k - 1), // bottom
-                    isSolid(i + 1, j, k), // front
-                    isSolid(i - 1, j, k), // back
-                    isSolid(i, j + 1, k), // right
-                    isSolid(i, j - 1, k) // left
+                    isSolid(chunks,i, j, k + 1), // top
+                    isSolid(chunks,i, j, k - 1), // bottom
+                    isSolid(chunks,i + 1, j, k), // front
+                    isSolid(chunks,i - 1, j, k), // back
+                    isSolid(chunks,i, j + 1, k), // right
+                    isSolid(chunks,i, j - 1, k) // left
                 };
-
-                if (i==0||j==0||i==CHUNK_SIZE-1||j==CHUNK_SIZE-1) {
-                    if (k==chunkHeight[i*CHUNK_SIZE+j] || k==chunkHeight[i*CHUNK_SIZE+j]-1) {
-                        for (bool & neighbor : neighbors) {
-                            neighbor = false;
-                        }
-                    }
-                }
 
                 addBlockFaces(mChunk[i][j][k],i, j, k, neighbors);
             }
@@ -399,6 +409,8 @@ void Chunk::generateMesh() {
     glBindVertexArray(0);
 
     vertices.clear();
+    indicesCount = indices.size();
+    indices.clear();
     needUpdate = false;
 }
 
@@ -499,13 +511,13 @@ void Chunk::addBlockFaces(uint16_t block,int bx, int by, int bz, const bool neig
 }
 
 uint16_t Chunk::getBlock(int x, int y, int z) const {
-    // different coordinate system
-    return mChunk[z][x][y];
+    if (x<0||y<0||z<0||x>=CHUNK_SIZE||y>=CHUNK_SIZE||z>=CHUNK_HEIGHT) return 0;
+    return mChunk[x][y][z];
 }
 
 void Chunk::setBlock(int x, int y, int z, const uint16_t block) {
-    if (x<0||y<0||z<0||x>=CHUNK_SIZE||y>=CHUNK_HEIGHT||z>=CHUNK_SIZE) return;
-    mChunk[z][x][y] = block;
+    if (x<0||y<0||z<0||x>=CHUNK_SIZE||y>=CHUNK_SIZE||z>=CHUNK_HEIGHT) return;
+    mChunk[x][y][z] = block;
 }
 
 void Chunk::setModified(bool modified) {
