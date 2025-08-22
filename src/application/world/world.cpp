@@ -128,7 +128,7 @@ void world::render(GLFWwindow* window) {
     mWorldShader->setInt("world_sampler", 0);
 
     // initial global model matrix
-    mWorldShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, -10.0f, 0.0f),MODEL_SCALE));
+    mWorldShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, 0.0f, 0.0f),MODEL_SCALE));
 
     // environment
     mWorldShader->setFloat("fogEnd", 250.0f);
@@ -142,7 +142,7 @@ void world::render(GLFWwindow* window) {
     Shader::end();
 
     // user interface
-    //userInterface->render();
+    userInterface->render();
 }
 
 void world::chunkUpdate() {
@@ -235,4 +235,101 @@ void world::noticeAroundChunk(int x_id, int z_id) {
     if (right!=nullptr)right->setModified(true);
     if (front!=nullptr)front->setModified(true);
     if (back!=nullptr)back->setModified(true);
+}
+
+struct VT {
+    int x,y,z;
+};
+
+int ftoi(float value) {
+    return static_cast<int>(std::floor(value));
+}
+
+int safeMod(int a, int b) {
+    int result = a % b;
+    return result < 0 ? result + b : result;
+}
+
+void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) {
+    if ((button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS) {
+        bool destroy = (button == GLFW_MOUSE_BUTTON_LEFT);
+        auto cameraPosition = mCamera->getPosition() / MODEL_SCALE;
+        auto cameraFront = mCamera->getFront();
+        glm::vec3 rayDirection = glm::normalize(cameraFront);
+
+        constexpr float maxRayLength = 5.0f * SOLID_SIZE;
+        constexpr float stepLength = 0.01f * SOLID_SIZE;
+
+        float rayLength = 0.1f;
+        VT lastValidBlock{-1, -1, -1};
+        bool hit = false;
+
+        while (rayLength <= maxRayLength && !hit) {
+            glm::vec3 currentPos = cameraPosition + rayLength * rayDirection;
+
+            int blockX = ftoi(currentPos.x / SOLID_SIZE);
+            int blockY = ftoi(currentPos.y / SOLID_SIZE);
+            int blockZ = ftoi(currentPos.z / SOLID_SIZE);
+
+            if (blockY < 0 || blockY >= CHUNK_HEIGHT) {
+                rayLength += stepLength;
+                continue;
+            }
+
+            int chunkX = ftoi(static_cast<float>(blockX) / CHUNK_SIZE);
+            int chunkZ = ftoi(static_cast<float>(blockZ) / CHUNK_SIZE);
+
+            auto chunk = getChunk(chunkX, chunkZ);
+            if (chunk == nullptr) {
+                rayLength += stepLength;
+                continue;
+            }
+
+            int x_id = safeMod(blockX, CHUNK_SIZE);
+            int z_id = safeMod(blockZ, CHUNK_SIZE);
+
+            if (chunk->getBlock(z_id, x_id, blockY) != AIR) {
+                if (destroy) {
+                    chunk->setBlock(z_id, x_id, blockY, AIR);
+                    chunk->setModified(true);
+                    hit = true;
+                } else {
+                    if (lastValidBlock.x != -1) {
+                        int lastChunkX = ftoi(static_cast<float>(lastValidBlock.x) / CHUNK_SIZE);
+                        int lastChunkZ = ftoi(static_cast<float>(lastValidBlock.z) / CHUNK_SIZE);
+                        auto lastChunk = getChunk(lastChunkX, lastChunkZ);
+
+                        if (lastChunk != nullptr && lastValidBlock.y >= 0 && lastValidBlock.y < CHUNK_HEIGHT) {
+                            int last_x_id = safeMod(lastValidBlock.x, CHUNK_SIZE);
+                            int last_z_id = safeMod(lastValidBlock.z, CHUNK_SIZE);
+
+                            if (lastChunk->getBlock(last_z_id, last_x_id, lastValidBlock.y) == AIR) {
+                                glm::vec3 playerPos = cameraPosition / SOLID_SIZE;
+                                int playerBlockX = ftoi(playerPos.x);
+                                int playerBlockY = ftoi(playerPos.y);
+                                int playerBlockZ = ftoi(playerPos.z);
+
+                                bool isPlayerPosition =
+                                    (lastValidBlock.x == playerBlockX && lastValidBlock.z == playerBlockZ &&
+                                     (lastValidBlock.y == playerBlockY || lastValidBlock.y == playerBlockY + 1));
+
+                                if (!isPlayerPosition) {
+                                    lastChunk->setBlock(last_z_id, last_x_id, lastValidBlock.y, BRICK);
+                                    lastChunk->setModified(true);
+                                }
+                            }
+                        }
+                    }
+                    hit = true;
+                }
+                break;
+            }
+
+            lastValidBlock.x = blockX;
+            lastValidBlock.y = blockY;
+            lastValidBlock.z = blockZ;
+
+            rayLength += stepLength;
+        }
+    }
 }

@@ -21,7 +21,7 @@
 
 #define MAX_GEN_CHUNK_THREAD 10
 
-#define MODEL_SCALE 0.05f
+#define MODEL_SCALE 0.2f
 
 #define CHUNK_RADIUS 10
 #define CHUNK_DIAMETER 21
@@ -37,6 +37,7 @@ public:
 
     void render(GLFWwindow* window);
 
+    void onMouseButton(GLFWwindow* window, int button, int action, int mods);
 private:
     Shader* mWorldShader = nullptr;
     Texture2D* mWorldTexture = nullptr;
