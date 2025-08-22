@@ -7,9 +7,9 @@
 #include "../../application/chunk/Chunk.h"
 
 float getAngleBetweenVectors(const glm::vec3& a, const glm::vec3& b) {
-    float dotProduct = glm::dot(a, b);
-    float lengthA = glm::length(a);
-    float lengthB = glm::length(b);
+    const float dotProduct = glm::dot(a, b);
+    const float lengthA = glm::length(a);
+    const float lengthB = glm::length(b);
     if (lengthA == 0.0f || lengthB == 0.0f) {
         return 0.0f;
     }
@@ -20,21 +20,37 @@ float getAngleBetweenVectors(const glm::vec3& a, const glm::vec3& b) {
 
 Camera::Camera(float aspect, const std::string& projectionMatrixTarget,
                const std::string& viewMatrixTarget, float scale) {
-    mPosition = glm::vec3(0.0f, 100.0f, 120.0f);
-    glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f);
-    mDirectionBack = glm::normalize(mPosition - target);
-    this->mPitch = glm::degrees(glm::asin(glm::abs(mDirectionBack.y)/glm::length(mDirectionBack)));
+    mPosition = glm::vec3(0.0f, 200.0f, 0.0f) * scale;
+    mYaw = 0.0f;
+    mPitch = -30.0f;
+    updateCameraVectors();
     this->aspectRatio = aspect;
     this->viewMatrixTarget = viewMatrixTarget;
     this->projectionMatrixTarget = projectionMatrixTarget;
     this->mScale = scale;
+
+    printf("Camera initial:\n");
+    printf("Position: (%.2f, %.2f, %.2f)\n", mPosition.x, mPosition.y, mPosition.z);
+    printf("Scale: %.3f\n", mScale);
+    printf("Yaw: %.2f, Pitch: %.2f\n", mYaw, mPitch);
+    printf("Front: (%.3f, %.3f, %.3f)\n", mFront.x, mFront.y, mFront.z);
 }
 
+void Camera::updateCameraVectors() {
+    glm::vec3 front;
+    front.x = cos(glm::radians(mYaw)) * cos(glm::radians(mPitch));
+    front.y = sin(glm::radians(mPitch));
+    front.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPitch));
+
+    mFront = glm::normalize(front);
+    mDirectionBack = -mFront;
+
+    mRight = glm::normalize(glm::cross(mFront, glm::vec3(0.0f, 1.0f, 0.0f)));
+    mUp = glm::normalize(glm::cross(mRight, mFront));
+}
 
 glm::mat4 Camera::getViewMatrix() const {
-    glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), mDirectionBack));
-    glm::vec3 cameraUp = glm::normalize(glm::cross(mDirectionBack, right));
-    return glm::lookAt(mPosition, mPosition - mDirectionBack, cameraUp);
+    return glm::lookAt(mPosition, mPosition + mFront, mUp);
 }
 
 glm::mat4 Camera::getProjectionMatrix() const {
@@ -43,39 +59,39 @@ glm::mat4 Camera::getProjectionMatrix() const {
 
 void Camera::onUpdate(GLFWwindow *window, Shader &shader) {
     static double lastTime = glfwGetTime();
-    double delta = glfwGetTime() - lastTime;
+    const double delta = glfwGetTime() - lastTime;
     lastTime = glfwGetTime();
 
-    // move camera
+    const float velocity = static_cast<float>(delta) * mSpeed / mScale;
+
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        mPosition += (-mDirectionBack)/mScale * static_cast<float>(delta) * mSpeed;
+        mPosition += mFront * velocity;
     } else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        mPosition -= (-mDirectionBack)/mScale * static_cast<float>(delta) * mSpeed;
+        mPosition -= mFront * velocity;
     }
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        glm::vec3 right = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), mDirectionBack);
-        mPosition -= right/mScale * static_cast<float>(delta) * mSpeed;
+        mPosition -= mRight * velocity;
     } else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        glm::vec3 right = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), mDirectionBack);
-        mPosition += right/mScale * static_cast<float>(delta) * mSpeed;
+        mPosition += mRight * velocity;
     }
 
-    if (glfwGetKey(window,GLFW_KEY_SPACE) == GLFW_PRESS) {
-        mPosition.y += static_cast<float>(delta * mSpeed)/mScale;
-    } else if (glfwGetKey(window,GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-        mPosition.y -= static_cast<float>(delta * mSpeed)/mScale;
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        mPosition.y += velocity;
+    } else if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        mPosition.y -= velocity;
     }
 
-    if (glfwGetKey(window,GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         onMouseMove = false;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
     double x_pos, y_pos;
     glfwGetCursorPos(window, &x_pos, &y_pos);
 
-    if (glfwGetMouseButton(window,GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
-        if (onMouseMove==false) {
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
+        if (onMouseMove == false) {
             onMouseMove = true;
             mLastX = static_cast<float>(x_pos);
             mLastY = static_cast<float>(y_pos);
@@ -85,7 +101,7 @@ void Camera::onUpdate(GLFWwindow *window, Shader &shader) {
 
     if (onMouseMove) {
         const float x_offset = static_cast<float>(x_pos - mLastX) * mSensitivity;
-        const float y_offset = static_cast<float>(y_pos - mLastY) * mSensitivity;
+        const float y_offset = static_cast<float>(mLastY - y_pos) * mSensitivity;
         mLastX = static_cast<float>(x_pos);
         mLastY = static_cast<float>(y_pos);
 
@@ -95,15 +111,11 @@ void Camera::onUpdate(GLFWwindow *window, Shader &shader) {
         if (mPitch > 89.0f) mPitch = 89.0f;
         if (mPitch < -89.0f) mPitch = -89.0f;
 
-        glm::vec3 direction;
-        direction.x = cos(glm::radians(mYaw)) * cos(glm::radians(mPitch));
-        direction.y = sin(glm::radians(mPitch));
-        direction.z = sin(glm::radians(mYaw)) * cos(glm::radians(mPitch));
-        mDirectionBack = glm::normalize(direction);
+        updateCameraVectors();
     }
 
-    shader.setMat4(viewMatrixTarget,getViewMatrix());
-    shader.setMat4(projectionMatrixTarget,getProjectionMatrix());
+    shader.setMat4(viewMatrixTarget, getViewMatrix());
+    shader.setMat4(projectionMatrixTarget, getProjectionMatrix());
 }
 
 void Camera::setAspectRatio(float aspect) {
@@ -115,5 +127,5 @@ glm::vec3 Camera::getPosition() const {
 }
 
 glm::vec3 Camera::getFront() const {
-    return -mDirectionBack;
+    return mFront;
 }

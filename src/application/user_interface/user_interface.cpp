@@ -29,72 +29,32 @@ UserInterface::UserInterface(Texture2D *worldTexture) {
 }
 
 void UserInterface::render() const {
-    worldTexture->bind();
     mShader->begin();
-    glDisable(GL_DEPTH_TEST);
-    mShader->setInt("world_sampler", 0);
     glBindVertexArray(mVAO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
-    glDrawElements(GL_TRIANGLES, indicesCount, GL_UNSIGNED_INT, nullptr);
+    glLineWidth(2.0f);
+    glDrawArrays(GL_LINES, 0, 4);
     Shader::end();
 }
 
 void UserInterface::genBuffers() {
-    if (mVAO != 0)glDeleteVertexArrays(1,&mVAO);
-    if (mVBO != 0)glDeleteBuffers(1,&mVBO);
-    if (mEBO != 0)glDeleteBuffers(1,&mEBO);
-
-    uint32_t showTextureID[8]={
-        0,3,5,7,11,15,17,20
+    constexpr float size = 0.01f;
+    std::vector<float> vertices = {
+        -size,  0.0f, 0.0f,
+         size,  0.0f, 0.0f,
+         0.0f, -size, 0.0f,
+         0.0f,  size, 0.0f
     };
 
     glGenVertexArrays(1, &mVAO);
     glBindVertexArray(mVAO);
     glGenBuffers(1, &mVBO);
     glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<int>(vertices.size() * sizeof(float)), vertices.data(), GL_STATIC_DRAW);
 
-    std::vector<VertexSimple> vertices;
-    vertices.reserve(32);
-    for (int i = 0; i < 8; i++) {
-        auto uv = getTextureUV(showTextureID[i]);
-        vertices.push_back({
-            -1.0f+static_cast<float>(i)*0.25f,-0.85f,0.0f,uv.first,uv.second+0.2f,
-        });
-        vertices.push_back({
-            -1.0f+static_cast<float>(i)*0.25f,-1.0f,0.0f,uv.first,uv.second,
-        });
-        vertices.push_back({
-            -1.0f+static_cast<float>(i+1)*0.25f,-0.85f,0.0f,uv.first+0.2f,uv.second+0.2f,
-        });
-        vertices.push_back({
-            -1.0f+static_cast<float>(i+1)*0.25f,-1.0f,0.0f,uv.first+0.2f,uv.second,
-        });
-    }
-
-    glBufferData(GL_ARRAY_BUFFER, static_cast<int>(vertices.size()*sizeof(VertexSimple)), vertices.data(), GL_STATIC_DRAW);
-    glEnableVertexAttribArray(mShader->getAttribPos("aPosition"));
-    glVertexAttribPointer(mShader->getAttribPos("aPosition"), 3, GL_FLOAT, GL_FALSE, sizeof(VertexSimple), reinterpret_cast<void *>(offsetof(VertexSimple, x)));
-    glEnableVertexAttribArray(mShader->getAttribPos("aUV"));
-    glVertexAttribPointer(mShader->getAttribPos("aUV"), 2, GL_FLOAT, GL_FALSE, sizeof(VertexSimple), reinterpret_cast<void *>(offsetof(VertexSimple, u)));
-
-    std::vector<uint32_t> indices;
-    indices.reserve(6*8);
-
-    for (uint32_t i=0;i<8;i++) {
-        indices.insert(indices.end(),{
-            4*i,4*i+1,4*i+2
-        });
-        indices.insert(indices.end(),{
-            4*i+2,4*i+1,4*i+3
-        });
-    }
-    indicesCount = static_cast<int>(indices.size());
-
-    glGenBuffers(1, &mEBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesCount*static_cast<int>(sizeof(uint32_t)), indices.data(), GL_STATIC_DRAW);
+    const uint32_t aPosition = mShader->getAttribPos("aPosition");
+    glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(aPosition);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 }

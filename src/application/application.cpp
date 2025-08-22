@@ -106,12 +106,7 @@ void Application::cursorPosCallBack(GLFWwindow *window, double xpos, double ypos
 
 void Application::mouseCallBack(GLFWwindow *window, int button, int action, int mods) {
     auto *app = static_cast<Application *>(glfwGetWindowUserPointer(window));
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        // destroy block
-    }
-    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-        // put block
-    }
+    app->mWorld->onMouseButton(window, button, action, mods);
 }
 
 void Application::keyBoardCallBack(GLFWwindow *window, int key, int scancode, int action, int mods) {

@@ -31,7 +31,7 @@ private:
     float aspectRatio=4.0/3.0;
 
     float mScale = 1.0f;
-    float mSpeed=1.0f;
+    float mSpeed=3.0f;
     float mYaw = 90.0f;
     float mPitch = 90.0f;
     float mSensitivity = 0.05f;
@@ -41,6 +41,11 @@ private:
 
     std::string projectionMatrixTarget;
     std::string viewMatrixTarget;
+
+    void updateCameraVectors();
+    glm::vec3 mFront{};
+    glm::vec3 mRight{};
+    glm::vec3 mUp{};
 };
 
 #endif //MINECRAFT_CAMERA_H
