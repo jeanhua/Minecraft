@@ -20,7 +20,7 @@ float getAngleBetweenVectors(const glm::vec3& a, const glm::vec3& b) {
 
 Camera::Camera(float aspect, const std::string& projectionMatrixTarget,
                const std::string& viewMatrixTarget, float scale) {
-    mPosition = glm::vec3(0.0f, 200.0f, 0.0f) * scale;
+    mPosition = glm::vec3(0.0f, 200.0f, 0.0f);
     mYaw = 0.0f;
     mPitch = -30.0f;
     updateCameraVectors();
