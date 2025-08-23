@@ -3,6 +3,7 @@
 //
 
 #include "application.h"
+#include "global_status.h"
 
 #include <chrono>
 #include <shared_mutex>
@@ -44,7 +45,7 @@ void Application::init(uint32_t width, uint32_t height, uint16_t fps) {
     glfwSetFramebufferSizeCallback(mWindow, frameBufferCallBack);
     glfwSetKeyCallback(mWindow, keyBoardCallBack);
     glfwSetMouseButtonCallback(mWindow, mouseCallBack);
-    glfwSetInputMode(mWindow,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(mWindow,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
 
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) {
         std::cout << "error when load glad loader" << std::endl;
@@ -54,6 +55,17 @@ void Application::init(uint32_t width, uint32_t height, uint16_t fps) {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
     mWorld = new world();
+
+    // imgui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(mWindow, true);
+    ImGui_ImplOpenGL3_Init();
 }
 
 void Application::run() const {
@@ -111,7 +123,15 @@ void Application::mouseCallBack(GLFWwindow *window, int button, int action, int 
 
 void Application::keyBoardCallBack(GLFWwindow *window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-        glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_NORMAL);
+        //glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_NORMAL);
+    }
+    if (key==GLFW_KEY_F1 && action == GLFW_PRESS) {
+        global_status::isUIShow = !global_status::isUIShow;
+        if (!global_status::isUIShow) {
+            glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+        }else {
+            glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_NORMAL);
+        }
     }
 }
 

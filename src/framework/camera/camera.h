@@ -37,10 +37,10 @@ private:
     float mSensitivity = 0.05f;
     float mLastX = 0.0f, mLastY = 0.0f;
 
-    bool onMouseMove = true;
-
     std::string projectionMatrixTarget;
     std::string viewMatrixTarget;
+
+    bool firstMouse=true;
 
     void updateCameraVectors();
     glm::vec3 mFront{};

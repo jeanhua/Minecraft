@@ -118,6 +118,11 @@ void Shader::setMat4(const std::string& name, glm::mat4 value) const
 	glUniformMatrix4fv(static_cast<int>(getUniformPos(name.c_str())), 1, GL_FALSE, glm::value_ptr(value));
 }
 
+void Shader::setBool(const std::string &name, bool value) const {
+	setInt(name,value?1:0);
+}
+
+
 void Shader::checkError(GLuint target, CheckType type) const
 {
 	int  success;

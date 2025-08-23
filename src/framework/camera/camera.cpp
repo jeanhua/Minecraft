@@ -5,6 +5,7 @@
 #include "camera.h"
 
 #include "../../application/chunk/Chunk.h"
+#include "../../application/global_status.h"
 
 float getAngleBetweenVectors(const glm::vec3& a, const glm::vec3& b) {
     const float dotProduct = glm::dot(a, b);
@@ -82,24 +83,20 @@ void Camera::onUpdate(GLFWwindow *window, Shader &shader) {
         mPosition.y -= velocity;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        onMouseMove = false;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-
     double x_pos, y_pos;
     glfwGetCursorPos(window, &x_pos, &y_pos);
 
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
-        if (onMouseMove == false) {
-            onMouseMove = true;
+    if (!global_status::isUIShow) {
+        if (firstMouse) {
             mLastX = static_cast<float>(x_pos);
             mLastY = static_cast<float>(y_pos);
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            firstMouse = false;
         }
+    }else {
+        firstMouse = true;
     }
 
-    if (onMouseMove) {
+    if (!global_status::isUIShow) {
         const float x_offset = static_cast<float>(x_pos - mLastX) * mSensitivity;
         const float y_offset = static_cast<float>(mLastY - y_pos) * mSensitivity;
         mLastX = static_cast<float>(x_pos);

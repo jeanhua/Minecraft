@@ -14,6 +14,7 @@ public:
     static Application* create();
     void init(uint32_t width=800, uint32_t height=600, uint16_t fps=120);
     void run() const;
+
 private:
     static Application* mInstance;
     Application()=default;

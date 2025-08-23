@@ -7,6 +7,7 @@
 #include <chrono>
 #include <set>
 
+#include "../global_status.h"
 #include "../../utils/utils.h"
 
 glm::mat4 getModelPosition(glm::vec3 pos, float scale) {
@@ -113,14 +114,15 @@ void world::setAspectRatio(float radio) const {
 
 void world::render(GLFWwindow* window) {
     // skybox
-    mSkyboxTexture->bind();
-    mSkyboxShader->begin();
-    mSkyboxShader->setInt("skyboxSampler", 0);
-    mSkyboxShader->setMat4("projection", mCamera->getProjectionMatrix());
-    mSkyboxShader->setMat4("view", glm::mat4(glm::mat3(mCamera->getViewMatrix())));
-    mSkybox->render();
-    Shader::end();
-
+    if (userInterface->showSkybox) {
+        mSkyboxTexture->bind();
+        mSkyboxShader->begin();
+        mSkyboxShader->setInt("skyboxSampler", 0);
+        mSkyboxShader->setMat4("projection", mCamera->getProjectionMatrix());
+        mSkyboxShader->setMat4("view", glm::mat4(glm::mat3(mCamera->getViewMatrix())));
+        mSkybox->render();
+        Shader::end();
+    }
 
     // world
     mWorldTexture->bind();
@@ -131,6 +133,11 @@ void world::render(GLFWwindow* window) {
     mWorldShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, 0.0f, 0.0f),MODEL_SCALE));
 
     // environment
+    mWorldShader->setBool("showFog",userInterface->showFog);
+    mWorldShader->setBool("showSunshine",userInterface->showSunshine);
+    mWorldShader->setFloat("ambientStrength",userInterface->ambientStrength);
+    mWorldShader->setFloat("specularStrength",userInterface->specularStrength);
+    mWorldShader->setInt("shininess",userInterface->shininess);
     mWorldShader->setFloat("fogEnd", 250.0f);
 
     // camera
@@ -251,13 +258,14 @@ int safeMod(int a, int b) {
 }
 
 void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) {
+    if (global_status::isUIShow)return;
     if ((button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS) {
         bool destroy = (button == GLFW_MOUSE_BUTTON_LEFT);
         auto cameraPosition = mCamera->getPosition() / MODEL_SCALE;
         auto cameraFront = mCamera->getFront();
         glm::vec3 rayDirection = glm::normalize(cameraFront);
 
-        constexpr float maxRayLength = 5.0f * SOLID_SIZE;
+        constexpr float maxRayLength = 10.0f * SOLID_SIZE;
         constexpr float stepLength = 0.01f * SOLID_SIZE;
 
         float rayLength = 0.1f;
@@ -288,11 +296,44 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
             int x_id = safeMod(blockX, CHUNK_SIZE);
             int z_id = safeMod(blockZ, CHUNK_SIZE);
 
+            auto noticeEdge = [=](int x,int z,int currentChunkX,int currentChunkZ)->void {
+                // left
+                if (x==0) {
+                    auto another = getChunk(currentChunkX-1, currentChunkZ);
+                    if (another != nullptr) {
+                        printf("notice left\n");
+                        another->setModified(true);
+                    }
+                }
+                // right
+                else if (x==CHUNK_SIZE-1) {
+                    auto another = getChunk(currentChunkX+1, currentChunkZ);
+                    if (another != nullptr) {
+                        another->setModified(true);
+                    }
+                }
+                // back
+                if (z==0) {
+                    auto another = getChunk(currentChunkX, currentChunkZ-1);
+                    if (another != nullptr) {
+                        another->setModified(true);
+                    }
+                }
+                // front
+                else if (z==CHUNK_SIZE-1) {
+                    auto another = getChunk(currentChunkX, currentChunkZ+1);
+                    if (another != nullptr) {
+                        another->setModified(true);
+                    }
+                }
+            };
+
             if (chunk->getBlock(z_id, x_id, blockY) != AIR) {
                 if (destroy) {
                     chunk->setBlock(z_id, x_id, blockY, AIR);
                     chunk->setModified(true);
                     hit = true;
+                    noticeEdge(x_id,z_id,chunkX,chunkZ);
                 } else {
                     if (lastValidBlock.x != -1) {
                         int lastChunkX = ftoi(static_cast<float>(lastValidBlock.x) / CHUNK_SIZE);
@@ -314,8 +355,9 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
                                      (lastValidBlock.y == playerBlockY || lastValidBlock.y == playerBlockY + 1));
 
                                 if (!isPlayerPosition) {
-                                    lastChunk->setBlock(last_z_id, last_x_id, lastValidBlock.y, BRICK);
+                                    lastChunk->setBlock(last_z_id, last_x_id, lastValidBlock.y, static_cast<uint8_t>(userInterface->currentBlock)+GRASS_STONE);
                                     lastChunk->setModified(true);
+                                    noticeEdge(last_x_id, last_z_id, lastChunkX, lastChunkZ);
                                 }
                             }
                         }

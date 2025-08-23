@@ -165,7 +165,7 @@ std::vector<glm::vec2> getUVPosition(uint16_t block) {
             back = glm::vec2(4.0f*ps, 3.0f*ps);
             break;
         }
-        case WOOL_1:
+        case WOOL_GREEN:
         {
             top = glm::vec2(0.0f*ps, 2.0f*ps);
             bottom = glm::vec2(0.0f*ps, 2.0f*ps);
@@ -175,7 +175,7 @@ std::vector<glm::vec2> getUVPosition(uint16_t block) {
             back = glm::vec2(0.0f*ps, 2.0f*ps);
             break;
         }
-        case WOOL_2:
+        case WOOL_PURPLE:
         {
             top = glm::vec2(1.0f*ps, 2.0f*ps);
             bottom = glm::vec2(1.0f*ps, 2.0f*ps);
@@ -185,7 +185,7 @@ std::vector<glm::vec2> getUVPosition(uint16_t block) {
             back = glm::vec2(1.0f*ps, 2.0f*ps);
             break;
         }
-        case WOOL_3:
+        case WOOL_PINK:
         {
             top = glm::vec2(2.0f*ps, 2.0f*ps);
             bottom = glm::vec2(2.0f*ps, 2.0f*ps);
@@ -195,7 +195,7 @@ std::vector<glm::vec2> getUVPosition(uint16_t block) {
             back = glm::vec2(2.0f*ps, 2.0f*ps);
             break;
         }
-        case WOOL_4:
+        case WOOL_PURPLE1:
         {
             top = glm::vec2(3.0f*ps, 2.0f*ps);
             bottom = glm::vec2(3.0f*ps, 2.0f*ps);
@@ -205,7 +205,7 @@ std::vector<glm::vec2> getUVPosition(uint16_t block) {
             back = glm::vec2(3.0f*ps, 2.0f*ps);
             break;
         }
-        case WOOL_5:
+        case WOOL_ORANGE:
         {
             top = glm::vec2(4.0f*ps, 2.0f*ps);
             bottom = glm::vec2(4.0f*ps, 2.0f*ps);
@@ -215,7 +215,7 @@ std::vector<glm::vec2> getUVPosition(uint16_t block) {
             back = glm::vec2(4.0f*ps, 2.0f*ps);
             break;
         }
-        case WOOL_6:
+        case WOOL_RED:
         {
             top = glm::vec2(0.0f*ps, 1.0f*ps);
             bottom = glm::vec2(0.0f*ps, 1.0f*ps);
@@ -225,7 +225,7 @@ std::vector<glm::vec2> getUVPosition(uint16_t block) {
             back = glm::vec2(0.0f*ps, 1.0f*ps);
             break;
         }
-        case WOOL_7:
+        case WOOL_YELLOW:
         {
             top = glm::vec2(1.0f*ps, 1.0f*ps);
             bottom = glm::vec2(1.0f*ps, 1.0f*ps);
