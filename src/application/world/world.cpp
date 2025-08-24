@@ -135,10 +135,18 @@ void world::render(GLFWwindow* window) {
     // environment
     mWorldShader->setBool("showFog",userInterface->showFog);
     mWorldShader->setBool("showSunshine",userInterface->showSunshine);
+    mWorldShader->setVec3("lightColor",userInterface->lightColor.x, userInterface->lightColor.y, userInterface->lightColor.z);
     mWorldShader->setFloat("ambientStrength",userInterface->ambientStrength);
     mWorldShader->setFloat("specularStrength",userInterface->specularStrength);
     mWorldShader->setInt("shininess",userInterface->shininess);
     mWorldShader->setFloat("fogEnd", 250.0f);
+
+    // line test
+    if (userInterface->drawLine) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }else {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
 
     // camera
     mCamera->onUpdate(window, *mWorldShader);
@@ -266,7 +274,7 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
         glm::vec3 rayDirection = glm::normalize(cameraFront);
 
         constexpr float maxRayLength = 10.0f * SOLID_SIZE;
-        constexpr float stepLength = 0.01f * SOLID_SIZE;
+        constexpr float stepLength = 0.0001f * SOLID_SIZE;
 
         float rayLength = 0.1f;
         VT lastValidBlock{-1, -1, -1};

@@ -58,6 +58,12 @@ UserInterface::UserInterface(Texture2D *worldTexture) {
 }
 
 void UserInterface::render() {
+    mShader->begin();
+    glBindVertexArray(mVAO);
+    glLineWidth(2.0f);
+    glDrawArrays(GL_LINES, 0, 4);
+    Shader::end();
+
     // imgui
     if (global_status::isUIShow) {
         ImGui_ImplOpenGL3_NewFrame();
@@ -67,12 +73,6 @@ void UserInterface::render() {
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
-
-    mShader->begin();
-    glBindVertexArray(mVAO);
-    glLineWidth(2.0f);
-    glDrawArrays(GL_LINES, 0, 4);
-    Shader::end();
 }
 
 void UserInterface::genBuffers() {
@@ -123,10 +123,13 @@ void UserInterface::buildUIFrame() {
 
     ImGui::Checkbox("show fog", &showFog);
     ImGui::Checkbox("show sunshine", &showSunshine);
-    ImGui::SliderFloat("ambientStrength",&ambientStrength,0.1f,1.0f);
-    ImGui::SliderFloat("specularStrength",&specularStrength,0.1f,1.0f);
+    ImGui::ColorEdit3("light color",reinterpret_cast<float *>(&lightColor));
+    ImGui::SliderFloat("ambient strength",&ambientStrength,0.1f,1.0f);
+    ImGui::SliderFloat("specular strength",&specularStrength,0.1f,1.0f);
     ImGui::SliderInt("shininess",&shininess,1,50);
     ImGui::Checkbox("show skybox", &showSkybox);
+    ImGui::Separator();
+    ImGui::Checkbox("line mode",&drawLine);
 
     ImGui::End();
 }

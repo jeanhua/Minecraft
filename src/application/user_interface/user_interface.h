@@ -19,12 +19,15 @@ public:
     // control
     bool showFog = true;
     bool showSunshine = true;
+    ImVec4 lightColor = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
     float ambientStrength = 0.8;
     float specularStrength = 0.9;
     int shininess = 32;
     bool showSkybox = true;
     std::vector<std::string>blocks;
     int currentBlock = 0;
+
+    bool drawLine = false;
 
 private:
     GLuint mVAO=0,mVBO=0,mEBO=0;
