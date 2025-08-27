@@ -39,6 +39,6 @@
 
 ## 展示
 
-![LOVE](E:\code\c++\Minecraft\README\LOVE.png)
+![LOVE](./README/LOVE.png)
 
-![builder](E:\code\c++\Minecraft\README\builder.png)
+![builder](./README/builder.png)
