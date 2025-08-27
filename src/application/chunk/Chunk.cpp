@@ -9,14 +9,14 @@ glm::vec3 Chunk::getPosition()const {
 }
 
 Chunk::~Chunk() {
-    if (mVAO!=0) {
-        glDeleteVertexArrays(1, &mVAO);
+    if (mSolidVAO!=0) {
+        glDeleteVertexArrays(1, &mSolidVAO);
     }
-    if (mVBO!=0) {
-        glDeleteBuffers(1, &mVBO);
+    if (mSolidVBO!=0) {
+        glDeleteBuffers(1, &mSolidVBO);
     }
-    if (mEBO!=0) {
-        glDeleteBuffers(1, &mEBO);
+    if (mSolidEBO!=0) {
+        glDeleteBuffers(1, &mSolidEBO);
     }
 }
 
@@ -302,16 +302,16 @@ void Chunk::init(const glm::vec3 &position,const std::vector<float>& mapNoise,co
 
 
 void Chunk::render(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks) {
-    if (needUpdate)generateMesh(chunks);
+    if (needUpdate)generateSolidMesh(chunks);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
-    glBindVertexArray(mVAO);
+    glBindVertexArray(mSolidVAO);
     glDrawElements(GL_TRIANGLES, static_cast<int>(indicesCount), GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
 }
 
 Chunk::Chunk(Shader *shader,int x_id,int z_id) {
-    mVAO = mVBO = mEBO = 0;
+    mSolidVAO = mSolidVBO = mSolidEBO = 0;
     needUpdate = true;
     mShader = shader;
     this->x_id = x_id;
@@ -346,14 +346,14 @@ bool Chunk::isSolid(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chun
     return (mChunk[x][y][z]&FULL_SOLID)!=0;
 }
 
-void Chunk::generateMesh(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks) {
+void Chunk::generateSolidMesh(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks) {
     vertices.clear();
     indices.clear();
 
     for (int i = 0; i < CHUNK_SIZE; i++) {
         for (int j = 0; j < CHUNK_SIZE; j++) {
             for (int k = 0; k < CHUNK_HEIGHT; k++) {
-                if (mChunk[i][j][k] == AIR) continue;
+                if ((mChunk[i][j][k]&FULL_SOLID)==0) continue;
                 bool neighbors[6] = {
                     isSolid(chunks,i, j, k + 1), // top
                     isSolid(chunks,i, j, k - 1), // bottom
@@ -363,29 +363,29 @@ void Chunk::generateMesh(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>&
                     isSolid(chunks,i, j - 1, k) // left
                 };
 
-                addBlockFaces(mChunk[i][j][k],i, j, k, neighbors);
+                addSolidBlockFaces(mChunk[i][j][k],i, j, k, neighbors);
             }
         }
     }
 
-    if (mVAO != 0) {
-        glDeleteVertexArrays(1, &mVAO);
-        mVAO = 0;
+    if (mSolidVAO != 0) {
+        glDeleteVertexArrays(1, &mSolidVAO);
+        mSolidVAO = 0;
     }
-    if (mVBO != 0) {
-        glDeleteBuffers(1, &mVBO);
-        mVBO = 0;
+    if (mSolidVBO != 0) {
+        glDeleteBuffers(1, &mSolidVBO);
+        mSolidVBO = 0;
     }
-    if (mEBO != 0) {
-        glDeleteBuffers(1, &mEBO);
-        mEBO = 0;
+    if (mSolidEBO != 0) {
+        glDeleteBuffers(1, &mSolidEBO);
+        mSolidEBO = 0;
     }
 
-    glGenVertexArrays(1, &mVAO);
-    glBindVertexArray(mVAO);
+    glGenVertexArrays(1, &mSolidVAO);
+    glBindVertexArray(mSolidVAO);
 
-    glGenBuffers(1, &mVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+    glGenBuffers(1, &mSolidVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, mSolidVBO);
     glBufferData(GL_ARRAY_BUFFER, static_cast<int>(vertices.size() * sizeof(Vertex)), vertices.data(),GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(mShader->getAttribPos("aPosition"));
@@ -400,8 +400,8 @@ void Chunk::generateMesh(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>&
     glVertexAttribPointer(mShader->getAttribPos("aUV"), 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                           reinterpret_cast<void *>(offsetof(Vertex, u)));
 
-    glGenBuffers(1, &mEBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
+    glGenBuffers(1, &mSolidEBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mSolidEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<int>(indices.size() * sizeof(GLuint)), indices.data(),
                  GL_STATIC_DRAW);
 
@@ -414,7 +414,7 @@ void Chunk::generateMesh(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>&
     needUpdate = false;
 }
 
-void Chunk::addBlockFaces(uint16_t block,int bx, int by, int bz, const bool neighbors[6]) {
+void Chunk::addSolidBlockFaces(uint16_t block,int bx, int by, int bz, const bool neighbors[6]) {
     glm::vec3 blockPos = glm::vec3(static_cast<float>(by) * SOLID_SIZE, static_cast<float>(bz) * SOLID_SIZE,
                                    static_cast<float>(bx) * SOLID_SIZE);
 

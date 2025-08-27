@@ -41,6 +41,7 @@
 #define WOOL_YELLOW     0b0000010000010101
 
 #define HALF_SOLID      0b0000100000000000
+#define WATER           0b0000100000000001
 
 
 struct PairHash {
@@ -67,7 +68,7 @@ public:
     void render(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks);
 
 private:
-    GLuint mVAO, mVBO, mEBO;
+    GLuint mSolidVAO, mSolidVBO, mSolidEBO;
     bool needUpdate;
 
     int x_id,z_id;
@@ -82,11 +83,11 @@ private:
 
     unsigned int indicesCount=0;
 
-    void generateMesh(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks);
+    void generateSolidMesh(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks);
 
     [[nodiscard]] bool isSolid(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks,int x, int y, int z) const;
 
-    void addBlockFaces(uint16_t block, int bx, int by, int bz, const bool neighbors[6]);
+    void addSolidBlockFaces(uint16_t block, int bx, int by, int bz, const bool neighbors[6]);
 };
 
 #endif //MINECRAFT_CHUNK_H
