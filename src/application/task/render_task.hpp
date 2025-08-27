@@ -14,6 +14,7 @@ struct RenderParam{
     int chunk_z;
     FastNoise::SmartNode<FastNoise::FractalFBm> fractal;
     Shader *mWorldShader;
+    Shader *mWaterShader;
     int mapSeed,treeSeed;
 };
 
@@ -50,7 +51,7 @@ inline ChunkAction render_task::doWork() {
     m_in.fractal->GenUniformGrid2D(treeNoiseValues.data(), chunkX * CHUNK_SIZE, chunkZ * CHUNK_SIZE,
                               CHUNK_SIZE, CHUNK_SIZE, 0.5, m_in.treeSeed);
 
-    const auto newChunk = new Chunk(m_in.mWorldShader,chunkX,chunkZ);
+    const auto newChunk = new Chunk(m_in.mWorldShader,m_in.mWaterShader,chunkX,chunkZ);
     glm::vec3 chunkPos = glm::vec3(
         static_cast<float>(chunkX) * aChunkSize,
         0.0f,

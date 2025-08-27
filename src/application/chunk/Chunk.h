@@ -55,7 +55,7 @@ struct PairHash {
 
 class Chunk {
 public:
-    explicit Chunk(Shader *shader,int x_id,int z_id);
+    explicit Chunk(Shader *mWorldShader,Shader *mWaterShader,int x_id,int z_id);
     ~Chunk();
 
     void init(const glm::vec3 &position,const std::vector<float>& mapNoise,const std::vector<float>& treeNoise);
@@ -65,15 +65,18 @@ public:
     void setBlock(int x, int y, int z, uint16_t block);
     void setModified(bool modified);
 
-    void render(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks);
+    void renderSolid(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks);
+    void renderWater() const;
 
 private:
     GLuint mSolidVAO, mSolidVBO, mSolidEBO;
+    GLuint mWaterVAO, mWaterVBO, mWaterEBO;
     bool needUpdate;
 
     int x_id,z_id;
 
-    Shader *mShader;
+    Shader *mWorldShader;
+    Shader *mWaterShader;
     glm::vec3 initialPosition{0.0f,0.0f,0.0f};
 
     std::array<std::array<std::array<uint16_t,CHUNK_HEIGHT>,CHUNK_SIZE>,CHUNK_SIZE> mChunk{0};
@@ -81,13 +84,16 @@ private:
     std::vector<Vertex> vertices;
     std::vector<GLuint> indices;
 
-    unsigned int indicesCount=0;
+    unsigned int solidIndicesCount=0;
+    unsigned int waterIndicesCount=0;
 
-    void generateSolidMesh(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks);
+    void generateMesh(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks);
 
-    [[nodiscard]] bool isSolid(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks,int x, int y, int z) const;
+    [[nodiscard]] bool isSolid(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks,int x, int y, int z,bool includeWater=false) const;
+    [[nodiscard]] bool isWater(std::unordered_map<std::pair<int,int>,Chunk*,PairHash>& chunks,int x, int y, int z) const;
 
     void addSolidBlockFaces(uint16_t block, int bx, int by, int bz, const bool neighbors[6]);
+    void addWaterBlockFaces(int bx, int by, int bz, const bool neighbors[6]);
 };
 
 #endif //MINECRAFT_CHUNK_H

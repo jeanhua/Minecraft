@@ -26,7 +26,7 @@ std::pair<float, float> getTextureUV(const uint32_t id) {
 UserInterface::UserInterface(Texture2D *worldTexture) {
     if (worldTexture == nullptr)std::cout << "worldTexture is null" << std::endl;
     std::cout << "Start to compile user interface shader program..." << std::endl;
-    this->mShader = new Shader("assets/shader/vertex_ui.glsl", "assets/shader/fragment_ui.glsl");
+    this->mShader = new Shader("assets/shader/ui/vertex_ui.glsl", "assets/shader/ui/fragment_ui.glsl");
     if (mShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
     this->worldTexture = worldTexture;
     genBuffers();

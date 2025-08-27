@@ -22,7 +22,7 @@ public:
 
 public:
     // callback
-    void onUpdate(GLFWwindow* window,Shader& shader);
+    void onUpdate(GLFWwindow* window,Shader& worldShader,Shader& waterShader);
 
 private:
     glm::vec3 mPosition{};

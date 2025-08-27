@@ -58,7 +58,7 @@ glm::mat4 Camera::getProjectionMatrix() const {
     return glm::perspective(glm::radians(45.0f), aspectRatio, 0.1f, 500.0f * SOLID_SIZE * mScale);
 }
 
-void Camera::onUpdate(GLFWwindow *window, Shader &shader) {
+void Camera::onUpdate(GLFWwindow *window, Shader &worldShader,Shader& waterShader) {
     static double lastTime = glfwGetTime();
     const double delta = glfwGetTime() - lastTime;
     lastTime = glfwGetTime();
@@ -111,8 +111,13 @@ void Camera::onUpdate(GLFWwindow *window, Shader &shader) {
         updateCameraVectors();
     }
 
-    shader.setMat4(viewMatrixTarget, getViewMatrix());
-    shader.setMat4(projectionMatrixTarget, getProjectionMatrix());
+    worldShader.begin();
+    worldShader.setMat4(viewMatrixTarget, getViewMatrix());
+    worldShader.setMat4(projectionMatrixTarget, getProjectionMatrix());
+
+    waterShader.begin();
+    waterShader.setMat4(viewMatrixTarget, getViewMatrix());
+    waterShader.setMat4(projectionMatrixTarget, getProjectionMatrix());
 }
 
 void Camera::setAspectRatio(float aspect) {

@@ -47,6 +47,8 @@ private:
     TextureCube* mSkyboxTexture = nullptr;
     Skybox* mSkybox = nullptr;
 
+    Shader* mWaterShader = nullptr;
+
     // map
     bool initial = false;
     int currentCenterX=0, currentCenterZ=0;

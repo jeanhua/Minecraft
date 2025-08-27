@@ -20,13 +20,13 @@ glm::mat4 getModelPosition(glm::vec3 pos, float scale) {
 
 world::world() {
     std::cout << "Start to compile world shader program..." << std::endl;
-    mWorldShader = new Shader("assets/shader/vertex_world.glsl", "assets/shader/fragment_world.glsl");
+    mWorldShader = new Shader("assets/shader/world/vertex_world.glsl", "assets/shader/world/fragment_world.glsl");
     if (mWorldShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
     mWorldTexture = new Texture2D("assets/texture/textures.png", 0);
     mCamera = new Camera(4.0f / 3.0f, "projectionMatrix", "viewMatrix",MODEL_SCALE);
 
     std::cout << "Start to compile skybox shader program..." << std::endl;
-    mSkyboxShader = new Shader("assets/shader/vertex_skybox.glsl", "assets/shader/fragment_skybox.glsl");
+    mSkyboxShader = new Shader("assets/shader/skybox/vertex_skybox.glsl", "assets/shader/skybox/fragment_skybox.glsl");
     if (mSkyboxShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
     std::vector<std::string> paths = {
         "assets/texture/skybox/xpos.png",
@@ -38,6 +38,10 @@ world::world() {
     };
     mSkyboxTexture = new TextureCube(paths, 0);
     mSkybox = new Skybox(mSkyboxShader);
+
+    std::cout << "Start to compile water shader program..." << std::endl;
+    mWaterShader = new Shader("assets/shader/water/vertex_water.glsl", "assets/shader/water/fragment_water.glsl");
+    if (mWaterShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
 
     // perlin func
     mapSeed = generateRandomNumber(1, 745323228);
@@ -65,6 +69,7 @@ world::~world() {
     delete mCamera;
     delete mSkyboxShader;
     delete mSkyboxTexture;
+    delete mWaterShader;
     delete mSkybox;
     delete userInterface;
     for (auto chunk: mChunks) {
@@ -100,7 +105,7 @@ void world::generateMissingChunks(const std::vector<std::pair<int, int> > &missi
         waitingChunks++;
         auto task = render_task(RenderParam{
             fst, snd,
-            fractal, mWorldShader, mapSeed, treeSeed
+            fractal, mWorldShader,mWaterShader, mapSeed, treeSeed
         });
         preRenderTasks.push_back(std::make_shared<render_task>(task));
     }
@@ -134,6 +139,10 @@ void world::render(GLFWwindow* window) {
     // initial global model matrix
     mWorldShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, 0.0f, 0.0f),MODEL_SCALE));
 
+    // water
+    mWaterShader->begin();
+    mWaterShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, 0.0f, 0.0f),MODEL_SCALE));
+
     // environment
     mWorldShader->setBool("showFog",global_status::showFog);
     mWorldShader->setBool("showSunshine",global_status::showSunshine);
@@ -158,7 +167,7 @@ void world::render(GLFWwindow* window) {
     }
 
     // camera
-    mCamera->onUpdate(window, *mWorldShader);
+    mCamera->onUpdate(window, *mWorldShader,*mWaterShader);
 
     // render chunk
     chunkUpdate();
@@ -236,7 +245,12 @@ void world::chunkUpdate() {
 
     for (auto chunk: mChunks) {
         if (chunk.second != nullptr) {
-            chunk.second->render(mChunks);
+            chunk.second->renderSolid(mChunks);
+        }
+    }
+    for (auto chunk: mChunks) {
+        if (chunk.second != nullptr) {
+            chunk.second->renderWater();
         }
     }
 }
@@ -326,7 +340,7 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
             int x_id = safeMod(blockX, CHUNK_SIZE);
             int z_id = safeMod(blockZ, CHUNK_SIZE);
 
-            auto noticeEdge = [=](int x,int z,int currentChunkX,int currentChunkZ)->void {
+            auto noticeEdge = [&](int x,int z,int currentChunkX,int currentChunkZ)->void {
                 // left
                 if (x==0) {
                     auto another = getChunk(currentChunkX-1, currentChunkZ);
@@ -357,7 +371,7 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
                 }
             };
 
-            if (chunk->getBlock(z_id, x_id, blockY) != AIR) {
+            if (chunk->getBlock(z_id, x_id, blockY) != AIR && chunk->getBlock(z_id, x_id, blockY) != WATER) {
                 if (destroy) {
                     chunk->setBlock(z_id, x_id, blockY, AIR);
                     chunk->setModified(true);
@@ -373,7 +387,7 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
                             int last_x_id = safeMod(lastValidBlock.x, CHUNK_SIZE);
                             int last_z_id = safeMod(lastValidBlock.z, CHUNK_SIZE);
 
-                            if (lastChunk->getBlock(last_z_id, last_x_id, lastValidBlock.y) == AIR) {
+                            if (lastChunk->getBlock(last_z_id, last_x_id, lastValidBlock.y) == AIR || lastChunk->getBlock(last_z_id, last_x_id, lastValidBlock.y) == WATER) {
                                 glm::vec3 playerPos = cameraPosition / SOLID_SIZE;
                                 int playerBlockX = ftoi(playerPos.x);
                                 int playerBlockY = ftoi(playerPos.y);
