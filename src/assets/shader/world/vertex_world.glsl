@@ -8,8 +8,8 @@ uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 transform;
 
-uniform float fogStart = 1000.0;
-uniform float fogEnd = 1500.0;
+uniform float fogStart = 300.0;
+uniform float fogEnd = 1000.0;
 
 out vec2 vertexUV;
 out float fogFactor;
@@ -35,7 +35,7 @@ void main() {
 
     // 雾效
     float dst = distance(viewPos, fragPos);
-    fogFactor = clamp((dst - fogStart) / (fogEnd - fogStart), 0.0, 1.0);
+    fogFactor = 1.0 - clamp((dst - fogStart) / (fogEnd - fogStart), 0.0, 1.0);
 
     gl_Position = projectionMatrix * viewMatrix * worldPos;
     vertexUV = aUV;

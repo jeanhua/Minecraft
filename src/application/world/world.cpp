@@ -145,12 +145,12 @@ void world::render(GLFWwindow* window) {
 
     // environment
     mWorldShader->setBool("showFog",global_status::showFog);
+    mWaterShader->setBool("showFog",global_status::showFog);
     mWorldShader->setBool("showSunshine",global_status::showSunshine);
     mWorldShader->setVec3("lightColor",global_status::lightColor.x, global_status::lightColor.y, global_status::lightColor.z);
     mWorldShader->setFloat("ambientStrength",global_status::ambientStrength);
     mWorldShader->setFloat("specularStrength",global_status::specularStrength);
     mWorldShader->setInt("shininess",global_status::shininess);
-    mWorldShader->setFloat("fogEnd", 250.0f);
 
     // line mode
     if (global_status::drawLine) {
