@@ -36,3 +36,9 @@
 地形渲染以区块为单位，一次渲染21x21个区块，区块大小16x16x256，使用线程池异步生成渲染参数
 
 使用面剔除，将多余的面进行剔除
+
+## 展示
+
+![LOVE](E:\code\c++\Minecraft\README\LOVE.png)
+
+![builder](E:\code\c++\Minecraft\README\builder.png)
