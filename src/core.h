@@ -14,9 +14,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "imgui_src/imgui.h"
-#include "imgui_src/imgui_impl_glfw.h"
-#include "imgui_src/imgui_impl_opengl3.h"
+#include "../package/source/imgui/imgui.h"
+#include "../package/source/imgui/imgui_impl_glfw.h"
+#include "../package/source/imgui/imgui_impl_opengl3.h"
 
 
 #endif //MINECRAFT_CORE_H

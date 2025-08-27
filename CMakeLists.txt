@@ -12,14 +12,15 @@ link_directories(
 )
 
 add_subdirectory(src)
+add_subdirectory(package/source)
 
 add_executable(Minecraft
         main.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/package/source/glad.c
 )
 
 target_link_libraries(
         Minecraft PRIVATE funcs
+        package_func
         glfw3
         FastNoise
 )
