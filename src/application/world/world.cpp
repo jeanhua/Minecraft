@@ -111,10 +111,12 @@ void world::setAspectRatio(float radio) const {
     mCamera->setAspectRatio(radio);
 }
 
+std::vector<Vertex> rayTest;
+GLuint vao=0,vbo=0;
 
 void world::render(GLFWwindow* window) {
     // skybox
-    if (userInterface->showSkybox) {
+    if (global_status::showSkybox) {
         mSkyboxTexture->bind();
         mSkyboxShader->begin();
         mSkyboxShader->setInt("skyboxSampler", 0);
@@ -133,19 +135,26 @@ void world::render(GLFWwindow* window) {
     mWorldShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, 0.0f, 0.0f),MODEL_SCALE));
 
     // environment
-    mWorldShader->setBool("showFog",userInterface->showFog);
-    mWorldShader->setBool("showSunshine",userInterface->showSunshine);
-    mWorldShader->setVec3("lightColor",userInterface->lightColor.x, userInterface->lightColor.y, userInterface->lightColor.z);
-    mWorldShader->setFloat("ambientStrength",userInterface->ambientStrength);
-    mWorldShader->setFloat("specularStrength",userInterface->specularStrength);
-    mWorldShader->setInt("shininess",userInterface->shininess);
+    mWorldShader->setBool("showFog",global_status::showFog);
+    mWorldShader->setBool("showSunshine",global_status::showSunshine);
+    mWorldShader->setVec3("lightColor",global_status::lightColor.x, global_status::lightColor.y, global_status::lightColor.z);
+    mWorldShader->setFloat("ambientStrength",global_status::ambientStrength);
+    mWorldShader->setFloat("specularStrength",global_status::specularStrength);
+    mWorldShader->setInt("shininess",global_status::shininess);
     mWorldShader->setFloat("fogEnd", 250.0f);
 
-    // line test
-    if (userInterface->drawLine) {
+    // line mode
+    if (global_status::drawLine) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }else {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
+    // ray test
+    if (vao!=0 && global_status::rayTest) {
+        glLineWidth(3.0f);
+        glBindVertexArray(vao);
+        glDrawArrays(GL_LINE_STRIP, 0, rayTest.size());
     }
 
     // camera
@@ -270,22 +279,35 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
     if ((button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS) {
         bool destroy = (button == GLFW_MOUSE_BUTTON_LEFT);
         auto cameraPosition = mCamera->getPosition() / MODEL_SCALE;
+
         auto cameraFront = mCamera->getFront();
         glm::vec3 rayDirection = glm::normalize(cameraFront);
 
+        rayTest.clear();
+        rayTest.push_back(Vertex{cameraPosition.x, cameraPosition.y, cameraPosition.z});
+
         constexpr float maxRayLength = 10.0f * SOLID_SIZE;
-        constexpr float stepLength = 0.0001f * SOLID_SIZE;
+        constexpr float stepLength = 0.1f*SOLID_SIZE;
 
         float rayLength = 0.1f;
         VT lastValidBlock{-1, -1, -1};
         bool hit = false;
 
+        int tryCount = 0;
+
         while (rayLength <= maxRayLength && !hit) {
+            tryCount++;
             glm::vec3 currentPos = cameraPosition + rayLength * rayDirection;
 
-            int blockX = ftoi(currentPos.x / SOLID_SIZE);
-            int blockY = ftoi(currentPos.y / SOLID_SIZE);
-            int blockZ = ftoi(currentPos.z / SOLID_SIZE);
+            rayTest.push_back(Vertex{
+                currentPos.x,
+                currentPos.y,
+                currentPos.z,
+            });
+
+            int blockX = ftoi((currentPos.x+SOLID_SIZE/2) / SOLID_SIZE);
+            int blockY = ftoi((currentPos.y+SOLID_SIZE/2) / SOLID_SIZE);
+            int blockZ = ftoi((currentPos.z+SOLID_SIZE/2) / SOLID_SIZE);
 
             if (blockY < 0 || blockY >= CHUNK_HEIGHT) {
                 rayLength += stepLength;
@@ -309,7 +331,6 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
                 if (x==0) {
                     auto another = getChunk(currentChunkX-1, currentChunkZ);
                     if (another != nullptr) {
-                        printf("notice left\n");
                         another->setModified(true);
                     }
                 }
@@ -363,7 +384,8 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
                                      (lastValidBlock.y == playerBlockY || lastValidBlock.y == playerBlockY + 1));
 
                                 if (!isPlayerPosition) {
-                                    lastChunk->setBlock(last_z_id, last_x_id, lastValidBlock.y, static_cast<uint8_t>(userInterface->currentBlock)+GRASS_STONE);
+                                    if (global_status::rayTest)printf("ray test try count: %d\n",tryCount);
+                                    lastChunk->setBlock(last_z_id, last_x_id, lastValidBlock.y, static_cast<uint8_t>(global_status::currentBlock)+GRASS_STONE);
                                     lastChunk->setModified(true);
                                     noticeEdge(last_x_id, last_z_id, lastChunkX, lastChunkZ);
                                 }
@@ -381,5 +403,24 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
 
             rayLength += stepLength;
         }
+
+        if (vao!=0) {
+            glDeleteVertexArrays(1,&vao);
+        }
+        glGenVertexArrays(1,&vao);
+        glBindVertexArray(vao);
+
+        if (vbo!=0) {
+            glDeleteBuffers(1,&vbo);
+        }
+        glGenBuffers(1,&vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER,sizeof(Vertex)*rayTest.size(),rayTest.data(),GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex)*rayTest.size(), rayTest.data());
+
+        const uint32_t aPosition = mWorldShader->getAttribPos("aPosition");
+        glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), nullptr);
+        glEnableVertexAttribArray(aPosition);
     }
 }

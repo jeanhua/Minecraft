@@ -32,7 +32,7 @@ UserInterface::UserInterface(Texture2D *worldTexture) {
     genBuffers();
 
     // blocks
-    blocks.insert(blocks.end(), {
+    global_status::blocks.insert(global_status::blocks.end(), {
                       "grass stone",
                       "leaves",
                       "board 1",
@@ -101,18 +101,19 @@ void UserInterface::genBuffers() {
 void UserInterface::buildUIFrame() {
     ImGui::Begin("Minecraft");
     ImGui::Text("Copyright by jeanhua");
-    ImGui::Text("Click F1 to show/hide Menu");
     ImGui::Separator();
+    ImGui::Text("Click F1 to show/hide Menu");
     ImGui::SetNextItemWidth(200.0f);
     ImGui::TextWrapped("Click mouse button left to destroy block and the right to put a block\n"
                        "Click WASD to move camera\n"
                        "Click Space to fly high and Shift to fly down.");
+    ImGui::Separator();
 
-    if (ImGui::BeginCombo("select block", blocks[currentBlock].c_str())) {
-        for (int i = 0; i < blocks.size(); i++) {
-            bool is_selected = (currentBlock == i);
-            if (ImGui::Selectable(blocks[i].c_str(), is_selected)) {
-                currentBlock = i;
+    if (ImGui::BeginCombo("select block", global_status::blocks[global_status::currentBlock].c_str())) {
+        for (int i = 0; i < global_status::blocks.size(); i++) {
+            bool is_selected = (global_status::currentBlock == i);
+            if (ImGui::Selectable(global_status::blocks[i].c_str(), is_selected)) {
+                global_status::currentBlock = i;
             }
             if (is_selected) {
                 ImGui::SetItemDefaultFocus();
@@ -121,15 +122,16 @@ void UserInterface::buildUIFrame() {
         ImGui::EndCombo();
     }
 
-    ImGui::Checkbox("show fog", &showFog);
-    ImGui::Checkbox("show sunshine", &showSunshine);
-    ImGui::ColorEdit3("light color",reinterpret_cast<float *>(&lightColor));
-    ImGui::SliderFloat("ambient strength",&ambientStrength,0.1f,1.0f);
-    ImGui::SliderFloat("specular strength",&specularStrength,0.1f,1.0f);
-    ImGui::SliderInt("shininess",&shininess,1,50);
-    ImGui::Checkbox("show skybox", &showSkybox);
+    ImGui::Checkbox("show fog", &global_status::showFog);
+    ImGui::Checkbox("show sunshine", &global_status::showSunshine);
+    ImGui::ColorEdit3("light color",reinterpret_cast<float *>(&global_status::lightColor));
+    ImGui::SliderFloat("ambient strength",&global_status::ambientStrength,0.1f,1.0f);
+    ImGui::SliderFloat("specular strength",&global_status::specularStrength,0.1f,1.0f);
+    ImGui::SliderInt("shininess",&global_status::shininess,1,50);
+    ImGui::Checkbox("show skybox", &global_status::showSkybox);
     ImGui::Separator();
-    ImGui::Checkbox("line mode",&drawLine);
+    ImGui::Checkbox("line mode",&global_status::drawLine);
+    ImGui::Checkbox("ray test",&global_status::rayTest);
 
     ImGui::End();
 }
