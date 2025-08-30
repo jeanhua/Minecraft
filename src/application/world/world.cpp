@@ -44,8 +44,8 @@ world::world() {
     if (mWaterShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
 
     // perlin func
-    mapSeed = generateRandomNumber(1, 745323228);
-    treeSeed = generateRandomNumber(4234, 23453453);
+    mapSeed = global_status::mapSeed == 0 ? generateRandomNumber(1, 745323228) : global_status::mapSeed;
+    treeSeed = global_status::treeSeed == 0 ? generateRandomNumber(4234, 23453453) : global_status::treeSeed;
     perlin = FastNoise::New<FastNoise::Perlin>();
     fractal = FastNoise::New<FastNoise::FractalFBm>();
     fractal->SetSource(perlin);
@@ -100,12 +100,12 @@ void world::writeChunk(int x_id, int z_id, Chunk *chunk) {
 }
 
 void world::generateMissingChunks(const std::vector<std::pair<int, int> > &missingChunks) {
-    std::vector<std::shared_ptr<Task<ChunkAction,RenderParam>>> preRenderTasks;
+    std::vector<std::shared_ptr<Task<ChunkAction, RenderParam> > > preRenderTasks;
     for (const auto &[fst, snd]: missingChunks) {
         waitingChunks++;
         auto task = render_task(RenderParam{
             fst, snd,
-            fractal, mWorldShader,mWaterShader, mapSeed, treeSeed
+            fractal, mWorldShader, mWaterShader, mapSeed, treeSeed
         });
         preRenderTasks.push_back(std::make_shared<render_task>(task));
     }
@@ -117,9 +117,9 @@ void world::setAspectRatio(float radio) const {
 }
 
 std::vector<Vertex> rayTest;
-GLuint vao=0,vbo=0;
+GLuint vao = 0, vbo = 0;
 
-void world::render(GLFWwindow* window) {
+void world::render(GLFWwindow *window) {
     // skybox
     if (global_status::showSkybox) {
         mSkyboxTexture->bind();
@@ -144,30 +144,31 @@ void world::render(GLFWwindow* window) {
     mWaterShader->setMat4("transform", getModelPosition(glm::vec3(0.0f, 0.0f, 0.0f),MODEL_SCALE));
 
     // environment
-    mWorldShader->setBool("showFog",global_status::showFog);
-    mWaterShader->setBool("showFog",global_status::showFog);
-    mWorldShader->setBool("showSunshine",global_status::showSunshine);
-    mWorldShader->setVec3("lightColor",global_status::lightColor.x, global_status::lightColor.y, global_status::lightColor.z);
-    mWorldShader->setFloat("ambientStrength",global_status::ambientStrength);
-    mWorldShader->setFloat("specularStrength",global_status::specularStrength);
-    mWorldShader->setInt("shininess",global_status::shininess);
+    mWorldShader->setBool("showFog", global_status::showFog);
+    mWaterShader->setBool("showFog", global_status::showFog);
+    mWorldShader->setBool("showSunshine", global_status::showSunshine);
+    mWorldShader->setVec3("lightColor", global_status::lightColor.x, global_status::lightColor.y,
+                          global_status::lightColor.z);
+    mWorldShader->setFloat("ambientStrength", global_status::ambientStrength);
+    mWorldShader->setFloat("specularStrength", global_status::specularStrength);
+    mWorldShader->setInt("shininess", global_status::shininess);
 
     // line mode
     if (global_status::drawLine) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    }else {
+    } else {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
 
     // ray test
-    if (vao!=0 && global_status::rayTest) {
+    if (vao != 0 && global_status::rayTest) {
         glLineWidth(3.0f);
         glBindVertexArray(vao);
         glDrawArrays(GL_LINE_STRIP, 0, rayTest.size());
     }
 
     // camera
-    mCamera->onUpdate(window, *mWorldShader,*mWaterShader);
+    mCamera->onUpdate(window, *mWorldShader, *mWaterShader);
 
     // render chunk
     chunkUpdate();
@@ -186,24 +187,25 @@ void world::chunkUpdate() {
     int x_id = static_cast<int>(std::floor(cameraPos.x / aChunkSize)) - global_status::renderRadius;
     int z_id = static_cast<int>(std::floor(cameraPos.z / aChunkSize)) - global_status::renderRadius;
 
-    if (initial==false) {
-        initial=true;
+    if (initial == false) {
+        initial = true;
         currentCenterX = 114514;
         currentCenterZ = 114514;
     }
 
     std::set<std::pair<int, int> > requiredChunks; // 用于跟踪需要的区块
 
-    for (int i = x_id; i < x_id + (2*global_status::renderRadius+1); i++) {
-        for (int k = z_id; k < z_id + (2*global_status::renderRadius+1); k++) {
+    for (int i = x_id; i < x_id + (2 * global_status::renderRadius + 1); i++) {
+        for (int k = z_id; k < z_id + (2 * global_status::renderRadius + 1); k++) {
             requiredChunks.insert({i, k});
         }
     }
 
-    if (waitingChunks == 0&&(std::abs(x_id+global_status::renderRadius-currentCenterX)>2||std::abs(z_id+global_status::renderRadius-currentCenterZ)>2)) {
+    if (waitingChunks == 0 && (std::abs(x_id + global_status::renderRadius - currentCenterX) > 2 || std::abs(
+                                   z_id + global_status::renderRadius - currentCenterZ) > 2)) {
         std::vector<std::pair<int, int> > missingChunks;
-        for (int i = 0; i < (2*global_status::renderRadius+1); i++) {
-            for (int k = 0; k < (2*global_status::renderRadius+1); k++) {
+        for (int i = 0; i < (2 * global_status::renderRadius + 1); i++) {
+            for (int k = 0; k < (2 * global_status::renderRadius + 1); k++) {
                 int chunkX = x_id + i;
                 int chunkZ = z_id + k;
                 if (getChunk(chunkX, chunkZ) == nullptr) {
@@ -228,8 +230,8 @@ void world::chunkUpdate() {
         chunkBuffer.pop_back();
         writeChunk(chunk.chunk_x, chunk.chunk_z, chunk.chunk);
         waitingChunks--;
-        currentCenterX = x_id+global_status::renderRadius;
-        currentCenterZ = z_id+global_status::renderRadius;
+        currentCenterX = x_id + global_status::renderRadius;
+        currentCenterZ = z_id + global_status::renderRadius;
 
         // clear
         std::vector<std::pair<int, int> > chunksToRemove;
@@ -257,7 +259,7 @@ void world::chunkUpdate() {
 
 
 uint16_t world::getBlock(int Chunk_X_ID, int Chunk_Z_ID, int x, int y, int z) {
-    auto chunk = getChunk(Chunk_X_ID,Chunk_Z_ID);
+    auto chunk = getChunk(Chunk_X_ID, Chunk_Z_ID);
     if (chunk == nullptr) {
         return 0;
     }
@@ -265,18 +267,18 @@ uint16_t world::getBlock(int Chunk_X_ID, int Chunk_Z_ID, int x, int y, int z) {
 }
 
 void world::noticeAroundChunk(int x_id, int z_id) {
-    const auto left = getChunk(x_id-1, z_id);
-    const auto right = getChunk(x_id+1, z_id);
-    const auto front  = getChunk(x_id, z_id+1);
-    const auto back   = getChunk(x_id, z_id-1);
-    if (left!=nullptr)left->setModified(true);
-    if (right!=nullptr)right->setModified(true);
-    if (front!=nullptr)front->setModified(true);
-    if (back!=nullptr)back->setModified(true);
+    const auto left = getChunk(x_id - 1, z_id);
+    const auto right = getChunk(x_id + 1, z_id);
+    const auto front = getChunk(x_id, z_id + 1);
+    const auto back = getChunk(x_id, z_id - 1);
+    if (left != nullptr)left->setModified(true);
+    if (right != nullptr)right->setModified(true);
+    if (front != nullptr)front->setModified(true);
+    if (back != nullptr)back->setModified(true);
 }
 
 struct VT {
-    int x,y,z;
+    int x, y, z;
 };
 
 int ftoi(float value) {
@@ -288,7 +290,7 @@ int safeMod(int a, int b) {
     return result < 0 ? result + b : result;
 }
 
-void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) {
+void world::onMouseButton(GLFWwindow *window, int button, int action, int mods) {
     if (global_status::isUIShow)return;
     if ((button == GLFW_MOUSE_BUTTON_LEFT || button == GLFW_MOUSE_BUTTON_RIGHT) && action == GLFW_PRESS) {
         bool destroy = (button == GLFW_MOUSE_BUTTON_LEFT);
@@ -301,7 +303,7 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
         rayTest.push_back(Vertex{cameraPosition.x, cameraPosition.y, cameraPosition.z});
 
         constexpr float maxRayLength = 10.0f * SOLID_SIZE;
-        constexpr float stepLength = 0.1f*SOLID_SIZE;
+        constexpr float stepLength = 0.1f * SOLID_SIZE;
 
         float rayLength = 0.1f;
         VT lastValidBlock{-1, -1, -1};
@@ -319,9 +321,9 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
                 currentPos.z,
             });
 
-            int blockX = ftoi((currentPos.x+SOLID_SIZE/2) / SOLID_SIZE);
-            int blockY = ftoi((currentPos.y+SOLID_SIZE/2) / SOLID_SIZE);
-            int blockZ = ftoi((currentPos.z+SOLID_SIZE/2) / SOLID_SIZE);
+            int blockX = ftoi((currentPos.x + SOLID_SIZE / 2) / SOLID_SIZE);
+            int blockY = ftoi((currentPos.y + SOLID_SIZE / 2) / SOLID_SIZE);
+            int blockZ = ftoi((currentPos.z + SOLID_SIZE / 2) / SOLID_SIZE);
 
             if (blockY < 0 || blockY >= CHUNK_HEIGHT) {
                 rayLength += stepLength;
@@ -340,31 +342,31 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
             int x_id = safeMod(blockX, CHUNK_SIZE);
             int z_id = safeMod(blockZ, CHUNK_SIZE);
 
-            auto noticeEdge = [&](int x,int z,int currentChunkX,int currentChunkZ)->void {
+            auto noticeEdge = [&](int x, int z, int currentChunkX, int currentChunkZ)-> void {
                 // left
-                if (x==0) {
-                    auto another = getChunk(currentChunkX-1, currentChunkZ);
+                if (x == 0) {
+                    auto another = getChunk(currentChunkX - 1, currentChunkZ);
                     if (another != nullptr) {
                         another->setModified(true);
                     }
                 }
                 // right
-                else if (x==CHUNK_SIZE-1) {
-                    auto another = getChunk(currentChunkX+1, currentChunkZ);
+                else if (x == CHUNK_SIZE - 1) {
+                    auto another = getChunk(currentChunkX + 1, currentChunkZ);
                     if (another != nullptr) {
                         another->setModified(true);
                     }
                 }
                 // back
-                if (z==0) {
-                    auto another = getChunk(currentChunkX, currentChunkZ-1);
+                if (z == 0) {
+                    auto another = getChunk(currentChunkX, currentChunkZ - 1);
                     if (another != nullptr) {
                         another->setModified(true);
                     }
                 }
                 // front
-                else if (z==CHUNK_SIZE-1) {
-                    auto another = getChunk(currentChunkX, currentChunkZ+1);
+                else if (z == CHUNK_SIZE - 1) {
+                    auto another = getChunk(currentChunkX, currentChunkZ + 1);
                     if (another != nullptr) {
                         another->setModified(true);
                     }
@@ -376,7 +378,7 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
                     chunk->setBlock(z_id, x_id, blockY, AIR);
                     chunk->setModified(true);
                     hit = true;
-                    noticeEdge(x_id,z_id,chunkX,chunkZ);
+                    noticeEdge(x_id, z_id, chunkX, chunkZ);
                 } else {
                     if (lastValidBlock.x != -1) {
                         int lastChunkX = ftoi(static_cast<float>(lastValidBlock.x) / CHUNK_SIZE);
@@ -387,19 +389,22 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
                             int last_x_id = safeMod(lastValidBlock.x, CHUNK_SIZE);
                             int last_z_id = safeMod(lastValidBlock.z, CHUNK_SIZE);
 
-                            if (lastChunk->getBlock(last_z_id, last_x_id, lastValidBlock.y) == AIR || lastChunk->getBlock(last_z_id, last_x_id, lastValidBlock.y) == WATER) {
+                            if (lastChunk->getBlock(last_z_id, last_x_id, lastValidBlock.y) == AIR || lastChunk->
+                                getBlock(last_z_id, last_x_id, lastValidBlock.y) == WATER) {
                                 glm::vec3 playerPos = cameraPosition / SOLID_SIZE;
                                 int playerBlockX = ftoi(playerPos.x);
                                 int playerBlockY = ftoi(playerPos.y);
                                 int playerBlockZ = ftoi(playerPos.z);
 
                                 bool isPlayerPosition =
-                                    (lastValidBlock.x == playerBlockX && lastValidBlock.z == playerBlockZ &&
-                                     (lastValidBlock.y == playerBlockY || lastValidBlock.y == playerBlockY + 1));
+                                (lastValidBlock.x == playerBlockX && lastValidBlock.z == playerBlockZ &&
+                                 (lastValidBlock.y == playerBlockY || lastValidBlock.y == playerBlockY + 1));
 
                                 if (!isPlayerPosition) {
-                                    if (global_status::rayTest)printf("ray test try count: %d\n",tryCount);
-                                    lastChunk->setBlock(last_z_id, last_x_id, lastValidBlock.y, static_cast<uint8_t>(global_status::currentBlock)+GRASS_STONE);
+                                    if (global_status::rayTest)printf("ray test try count: %d\n", tryCount);
+                                    lastChunk->setBlock(last_z_id, last_x_id, lastValidBlock.y,
+                                                        static_cast<uint8_t>(global_status::currentBlock) +
+                                                        GRASS_STONE);
                                     lastChunk->setModified(true);
                                     noticeEdge(last_x_id, last_z_id, lastChunkX, lastChunkZ);
                                 }
@@ -418,20 +423,20 @@ void world::onMouseButton(GLFWwindow* window, int button, int action, int mods) 
             rayLength += stepLength;
         }
 
-        if (vao!=0) {
-            glDeleteVertexArrays(1,&vao);
+        if (vao != 0) {
+            glDeleteVertexArrays(1, &vao);
         }
-        glGenVertexArrays(1,&vao);
+        glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
 
-        if (vbo!=0) {
-            glDeleteBuffers(1,&vbo);
+        if (vbo != 0) {
+            glDeleteBuffers(1, &vbo);
         }
-        glGenBuffers(1,&vbo);
+        glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER,sizeof(Vertex)*rayTest.size(),rayTest.data(),GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * rayTest.size(), rayTest.data(),GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex)*rayTest.size(), rayTest.data());
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * rayTest.size(), rayTest.data());
 
         const uint32_t aPosition = mWorldShader->getAttribPos("aPosition");
         glVertexAttribPointer(aPosition, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), nullptr);

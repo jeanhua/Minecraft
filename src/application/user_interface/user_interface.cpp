@@ -3,6 +3,9 @@
 //
 
 #include "user_interface.h"
+
+#include <algorithm>
+
 #include "../global_status.h"
 
 UserInterface::~UserInterface() {
@@ -99,7 +102,20 @@ void UserInterface::genBuffers() {
 }
 
 void UserInterface::buildUIFrame() {
+    ImGui::SetNextWindowPos(ImVec2(5, 5),ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(560, 400),ImGuiCond_FirstUseEver);
     ImGui::Begin("Minecraft");
+    if (ImGui::IsWindowAppearing()) {
+        ImVec2 viewport_size = ImGui::GetMainViewport()->Size;
+        ImVec2 window_size = ImGui::GetWindowSize();
+        ImVec2 new_pos = ImGui::GetWindowPos();
+        ImVec2 old_pos = new_pos;
+        new_pos.x = std::clamp(new_pos.x, 0.0f, viewport_size.x - window_size.x);
+        new_pos.y = std::clamp(new_pos.y, 0.0f, viewport_size.y - window_size.y);
+        if (new_pos.x != old_pos.x || new_pos.y != old_pos.y) {
+            ImGui::SetWindowPos(new_pos);
+        }
+    }
     ImGui::Text("Copyright by jeanhua");
     ImGui::Separator();
     ImGui::Text("Click F1 to show/hide Menu");

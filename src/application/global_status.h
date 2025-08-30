@@ -9,6 +9,9 @@
 
 class global_status {
 public:
+    inline static int mapSeed = 0;
+    inline static int treeSeed = 0;
+
     inline static bool isUIShow = true;
 
     inline static bool showFog = true;
