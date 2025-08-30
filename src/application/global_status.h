@@ -23,5 +23,7 @@ public:
 
     inline static bool drawLine = false;
     inline static bool rayTest = false;
+
+    inline static int renderRadius = 20;
 };
 #endif //MINECRAFT_GLOBAL_STATUS_H

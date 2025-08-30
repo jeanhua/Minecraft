@@ -183,8 +183,8 @@ void world::chunkUpdate() {
     cameraPos /= MODEL_SCALE;
 
     float aChunkSize = SOLID_SIZE * CHUNK_SIZE;
-    int x_id = static_cast<int>(std::floor(cameraPos.x / aChunkSize)) - CHUNK_RADIUS;
-    int z_id = static_cast<int>(std::floor(cameraPos.z / aChunkSize)) - CHUNK_RADIUS;
+    int x_id = static_cast<int>(std::floor(cameraPos.x / aChunkSize)) - global_status::renderRadius;
+    int z_id = static_cast<int>(std::floor(cameraPos.z / aChunkSize)) - global_status::renderRadius;
 
     if (initial==false) {
         initial=true;
@@ -194,16 +194,16 @@ void world::chunkUpdate() {
 
     std::set<std::pair<int, int> > requiredChunks; // 用于跟踪需要的区块
 
-    for (int i = x_id; i < x_id + CHUNK_DIAMETER; i++) {
-        for (int k = z_id; k < z_id + CHUNK_DIAMETER; k++) {
+    for (int i = x_id; i < x_id + (2*global_status::renderRadius+1); i++) {
+        for (int k = z_id; k < z_id + (2*global_status::renderRadius+1); k++) {
             requiredChunks.insert({i, k});
         }
     }
 
-    if (waitingChunks == 0&&(std::abs(x_id+CHUNK_RADIUS-currentCenterX)>2||std::abs(z_id+CHUNK_RADIUS-currentCenterZ)>2)) {
+    if (waitingChunks == 0&&(std::abs(x_id+global_status::renderRadius-currentCenterX)>2||std::abs(z_id+global_status::renderRadius-currentCenterZ)>2)) {
         std::vector<std::pair<int, int> > missingChunks;
-        for (int i = 0; i < CHUNK_DIAMETER; i++) {
-            for (int k = 0; k < CHUNK_DIAMETER; k++) {
+        for (int i = 0; i < (2*global_status::renderRadius+1); i++) {
+            for (int k = 0; k < (2*global_status::renderRadius+1); k++) {
                 int chunkX = x_id + i;
                 int chunkZ = z_id + k;
                 if (getChunk(chunkX, chunkZ) == nullptr) {
@@ -228,8 +228,8 @@ void world::chunkUpdate() {
         chunkBuffer.pop_back();
         writeChunk(chunk.chunk_x, chunk.chunk_z, chunk.chunk);
         waitingChunks--;
-        currentCenterX = x_id+CHUNK_RADIUS;
-        currentCenterZ = z_id+CHUNK_RADIUS;
+        currentCenterX = x_id+global_status::renderRadius;
+        currentCenterZ = z_id+global_status::renderRadius;
 
         // clear
         std::vector<std::pair<int, int> > chunksToRemove;

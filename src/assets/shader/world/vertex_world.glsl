@@ -9,7 +9,7 @@ uniform mat4 viewMatrix;
 uniform mat4 transform;
 
 uniform float fogStart = 300.0;
-uniform float fogEnd = 1000.0;
+uniform float fogEnd = 1500.0;
 
 out vec2 vertexUV;
 out float fogFactor;

@@ -23,8 +23,6 @@
 
 #define MODEL_SCALE 0.2f
 
-#define CHUNK_RADIUS 10
-#define CHUNK_DIAMETER 21
 #define MAX_GEN_CHUNK_THREAD 10
 
 

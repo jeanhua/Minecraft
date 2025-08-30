@@ -133,5 +133,9 @@ void UserInterface::buildUIFrame() {
     ImGui::Checkbox("line mode",&global_status::drawLine);
     ImGui::Checkbox("ray test",&global_status::rayTest);
 
+
+    ImGui::Separator();
+    ImGui::SliderInt("render radius",&global_status::renderRadius,5,30);
+
     ImGui::End();
 }
