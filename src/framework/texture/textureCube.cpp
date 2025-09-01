@@ -4,6 +4,7 @@
 
 #include "textureCube.h"
 #include "stb/stb_image.h"
+#include <filesystem>
 
 TextureCube::~TextureCube() {
     if(mTexture!=0) {
@@ -12,8 +13,15 @@ TextureCube::~TextureCube() {
 }
 
 TextureCube::TextureCube(const std::vector<std::string>& paths,unsigned int unit) {
+    if (paths.size()!=6) {
+        std::cerr<<"TEXT CUBE SHOULD BE 6 PATH"<<std::endl;
+    }
+    for (std::string_view p:paths) {
+        if (!std::filesystem::exists(p)) {
+            std::cerr << "File does not exist: " << p << std::endl;
+        }
+    }
     this->mUnit=unit;
-
     glGenTextures(1, &mTexture);
     glBindTexture(GL_TEXTURE_CUBE_MAP, mTexture);
 

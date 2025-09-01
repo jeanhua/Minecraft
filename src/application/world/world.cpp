@@ -22,12 +22,20 @@ world::world() {
     std::cout << "Start to compile world shader program..." << std::endl;
     mWorldShader = new Shader("assets/shader/world/vertex_world.glsl", "assets/shader/world/fragment_world.glsl");
     if (mWorldShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
-    mWorldTexture = new Texture2D("assets/texture/textures.png", 0);
-    mCamera = new Camera(4.0f / 3.0f, "projectionMatrix", "viewMatrix",MODEL_SCALE);
 
     std::cout << "Start to compile skybox shader program..." << std::endl;
     mSkyboxShader = new Shader("assets/shader/skybox/vertex_skybox.glsl", "assets/shader/skybox/fragment_skybox.glsl");
     if (mSkyboxShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
+
+    std::cout << "Start to compile water shader program..." << std::endl;
+    mWaterShader = new Shader("assets/shader/water/vertex_water.glsl", "assets/shader/water/fragment_water.glsl");
+    if (mWaterShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
+
+    // user interface
+    userInterface = new UserInterface();
+
+    mWorldTexture = new Texture2D("assets/texture/textures.png", 0);
+
     std::vector<std::string> paths = {
         "assets/texture/skybox/xpos.png",
         "assets/texture/skybox/xneg.png",
@@ -38,11 +46,7 @@ world::world() {
     };
     mSkyboxTexture = new TextureCube(paths, 0);
     mSkybox = new Skybox(mSkyboxShader);
-
-    std::cout << "Start to compile water shader program..." << std::endl;
-    mWaterShader = new Shader("assets/shader/water/vertex_water.glsl", "assets/shader/water/fragment_water.glsl");
-    if (mWaterShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
-
+    mCamera = new Camera(4.0f / 3.0f, "projectionMatrix", "viewMatrix",MODEL_SCALE);
     // perlin func
     mapSeed = global_status::mapSeed == 0 ? generateRandomNumber(1, 745323228) : global_status::mapSeed;
     treeSeed = global_status::treeSeed == 0 ? generateRandomNumber(4234, 23453453) : global_status::treeSeed;
@@ -57,8 +61,6 @@ world::world() {
     renderPool = new ThreadPool<ChunkAction, RenderParam>();
     renderPool->init(MAX_GEN_CHUNK_THREAD);
 
-    // user interface
-    userInterface = new UserInterface(mWorldTexture);
 }
 
 world::~world() {
@@ -117,7 +119,7 @@ void world::setAspectRatio(float radio) const {
 }
 
 std::vector<Vertex> rayTest;
-GLuint vao = 0, vbo = 0;
+GLuint raytest_vao = 0, raytest_vbo = 0;
 
 void world::render(GLFWwindow *window) {
     // skybox
@@ -161,10 +163,12 @@ void world::render(GLFWwindow *window) {
     }
 
     // ray test
-    if (vao != 0 && global_status::rayTest) {
+    if (raytest_vao != 0 && global_status::rayTest) {
+        mWorldShader->setBool("rayTest",true);
         glLineWidth(3.0f);
-        glBindVertexArray(vao);
+        glBindVertexArray(raytest_vao);
         glDrawArrays(GL_LINE_STRIP, 0, rayTest.size());
+        mWorldShader->setBool("rayTest",false);
     }
 
     // camera
@@ -423,19 +427,19 @@ void world::onMouseButton(GLFWwindow *window, int button, int action, int mods) 
             rayLength += stepLength;
         }
 
-        if (vao != 0) {
-            glDeleteVertexArrays(1, &vao);
+        if (raytest_vao != 0) {
+            glDeleteVertexArrays(1, &raytest_vao);
         }
-        glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
+        glGenVertexArrays(1, &raytest_vao);
+        glBindVertexArray(raytest_vao);
 
-        if (vbo != 0) {
-            glDeleteBuffers(1, &vbo);
+        if (raytest_vbo != 0) {
+            glDeleteBuffers(1, &raytest_vbo);
         }
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glGenBuffers(1, &raytest_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, raytest_vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * rayTest.size(), rayTest.data(),GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, raytest_vbo);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * rayTest.size(), rayTest.data());
 
         const uint32_t aPosition = mWorldShader->getAttribPos("aPosition");

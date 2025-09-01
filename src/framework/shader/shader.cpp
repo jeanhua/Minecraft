@@ -5,8 +5,15 @@
 #include "shader.h"
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 Shader::Shader(const std::string& vertexPath, const std::string& fragmentPath) {
+	if (!std::filesystem::exists(vertexPath)) {
+		std::cerr << "File does not exist: " << vertexPath << std::endl;
+	}
+	if (!std::filesystem::exists(fragmentPath)) {
+		std::cerr << "File does not exist: " << fragmentPath << std::endl;
+	}
 	this->mProgram = 0;
 	std::string vertexCode, fragmentCode;
 	std::ifstream vShaderFile, fShaderFile;

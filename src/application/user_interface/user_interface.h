@@ -11,7 +11,7 @@
 
 class UserInterface {
 public:
-    explicit UserInterface(Texture2D* worldTexture);
+    explicit UserInterface();
     ~UserInterface();
 
     void render();
@@ -20,8 +20,6 @@ private:
     GLuint mVAO=0,mVBO=0,mEBO=0;
     int indicesCount=0;
     Shader* mShader=nullptr;
-
-    Texture2D* worldTexture;
 
     void genBuffers();
     void buildUIFrame();

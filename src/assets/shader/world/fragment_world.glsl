@@ -19,9 +19,18 @@ uniform float ambientStrength = 0.8;
 uniform float specularStrength = 0.9;
 uniform int shininess = 32;
 
+// raytest
+uniform int rayTest = 0;
+uniform vec3 rayColor = vec3(1.0f,1.0f,1.0f);
+
 out vec4 FragColor;
 
 void main() {
+    if(rayTest==1){
+        FragColor = vec4(rayColor.xyz,1.0f);
+        return;
+    }
+
     // 环境光
     vec3 ambient = ambientStrength * lightColor;
 

@@ -26,12 +26,10 @@ std::pair<float, float> getTextureUV(const uint32_t id) {
     return std::make_pair(static_cast<float>(x_id) * 0.2f, static_cast<float>(y_id) * 0.2f);
 }
 
-UserInterface::UserInterface(Texture2D *worldTexture) {
-    if (worldTexture == nullptr)std::cout << "worldTexture is null" << std::endl;
+UserInterface::UserInterface() {
     std::cout << "Start to compile user interface shader program..." << std::endl;
     this->mShader = new Shader("assets/shader/ui/vertex_ui.glsl", "assets/shader/ui/fragment_ui.glsl");
     if (mShader->getShaderProgram() != 0)std::cout << "Compile shader program success." << std::endl;
-    this->worldTexture = worldTexture;
     genBuffers();
 
     // blocks
@@ -147,7 +145,7 @@ void UserInterface::buildUIFrame() {
     ImGui::Checkbox("show skybox", &global_status::showSkybox);
     ImGui::Separator();
     ImGui::Checkbox("line mode",&global_status::drawLine);
-    ImGui::Checkbox("ray test",&global_status::rayTest);
+    ImGui::Checkbox("show ray test",&global_status::rayTest);
 
 
     ImGui::Separator();

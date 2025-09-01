@@ -6,9 +6,13 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
+#include <filesystem>
 
 Texture2D::Texture2D(const std::string& path, unsigned int unit) :mUnit(unit)
 {
+	if (!std::filesystem::exists(path)) {
+		std::cerr << "File does not exist: " << path << std::endl;
+	}
 	int channels;
 	stbi_set_flip_vertically_on_load(true);
 	unsigned char* imageData = stbi_load(path.c_str(), &mWidth, &mHeight, &channels, STBI_rgb_alpha);
