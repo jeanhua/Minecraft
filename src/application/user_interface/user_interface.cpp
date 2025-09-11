@@ -114,7 +114,11 @@ void UserInterface::buildUIFrame() {
             ImGui::SetWindowPos(new_pos);
         }
     }
-    ImGui::Text("Copyright by jeanhua");
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0, 0, 0, 0));
+    if (ImGui::Selectable("Copyright by jeanhua", false, ImGuiSelectableFlags_None)) {
+        system("start https://github.com/jeanhua/Minecraft");
+    }
+    ImGui::PopStyleColor();
     ImGui::Separator();
     ImGui::Text("Click F1 to show/hide Menu");
     ImGui::SetNextItemWidth(200.0f);
