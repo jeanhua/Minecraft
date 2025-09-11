@@ -37,6 +37,8 @@ public:
     void addTask(std::vector<std::shared_ptr<Task<retType,inType>>>&& task);
     void clear();
 
+    bool isReady() const;
+
     std::vector<retType>&& getOutput();
 
 private:
@@ -47,6 +49,8 @@ private:
     std::mutex m_mutex;
     std::condition_variable m_cv;
     bool m_Running;
+
+    std::atomic<bool> is_ready = {true};
 
     std::mutex m_outMutex;
     std::vector<retType> m_output;
@@ -87,6 +91,7 @@ void ThreadPool<retType,inType>::threadFunction() {
         while (m_taskList.empty()) {
             if (!m_Running)
                 break;
+            is_ready.store(true);
             m_cv.wait(lock);
         }
         if (!m_Running)
@@ -116,6 +121,7 @@ void ThreadPool<retType,inType>::stop() {
 template<typename retType,typename inType>
 void ThreadPool<retType,inType>::addTask(std::shared_ptr<Task<retType,inType>> task) {
     std::unique_lock lock(m_mutex);
+    is_ready.store(false);
     m_taskList.push_back(task);
     m_cv.notify_one();
 }
@@ -124,6 +130,7 @@ template<typename retType, typename inType>
 void ThreadPool<retType, inType>::addTask(std::vector<std::shared_ptr<Task<retType, inType> > > &&task) {
     int size = task.size();
     std::unique_lock lock(m_mutex);
+    is_ready.store(false);
     m_taskList.insert(m_taskList.end(), task.begin(), task.end());
     for (int i = 0; i < size; i++) m_cv.notify_one();
 }
@@ -142,5 +149,11 @@ std::vector<retType>&& ThreadPool<retType,inType>::getOutput() {
     std::unique_lock lock(m_outMutex);
     return std::move(m_output);
 }
+
+template<typename retType, typename inType>
+bool ThreadPool<retType, inType>::isReady() const {
+    return is_ready.load();
+}
+
 
 #endif //MINECRAFT_TASK_H

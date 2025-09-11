@@ -224,9 +224,11 @@ void world::chunkUpdate() {
 
 
     // get output
-    auto finishedChunks = renderPool->getOutput();
-    if (!finishedChunks.empty()) {
-        chunkBuffer.insert(chunkBuffer.end(), finishedChunks.begin(), finishedChunks.end());
+    if (renderPool->isReady()) {
+        auto finishedChunks = renderPool->getOutput();
+        if (!finishedChunks.empty()) {
+            chunkBuffer.insert(chunkBuffer.end(), finishedChunks.begin(), finishedChunks.end());
+        }
     }
 
     if (!chunkBuffer.empty()) {
