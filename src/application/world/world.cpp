@@ -408,9 +408,19 @@ void world::onMouseButton(GLFWwindow *window, int button, int action, int mods) 
 
                                 if (!isPlayerPosition) {
                                     if (global_status::rayTest)printf("ray test try count: %d\n", tryCount);
-                                    lastChunk->setBlock(last_z_id, last_x_id, lastValidBlock.y,
-                                                        static_cast<uint8_t>(global_status::currentBlock) +
-                                                        GRASS_STONE);
+                                    auto tg = static_cast<uint8_t>(global_status::currentBlock) + GRASS_STONE;
+                                    static int water_index = [&]()->int {
+                                        for (int i=0;i<global_status::blocks.size();i++) {
+                                            if (global_status::blocks[i]=="water") {
+                                                return i;
+                                            }
+                                        }
+                                        return -1;
+                                    }();
+                                    if (water_index!=-1 && global_status::currentBlock>=water_index) {
+                                        tg = static_cast<uint8_t>(global_status::currentBlock) + WATER - water_index;
+                                    }
+                                    lastChunk->setBlock(last_z_id, last_x_id, lastValidBlock.y,tg);
                                     lastChunk->setModified(true);
                                     noticeEdge(last_x_id, last_z_id, lastChunkX, lastChunkZ);
                                 }

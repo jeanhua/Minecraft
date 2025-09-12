@@ -55,6 +55,7 @@ UserInterface::UserInterface() {
                       "wool_orange",
                       "wool_red",
                       "wool_yellow",
+                      "water"
                   });
 }
 

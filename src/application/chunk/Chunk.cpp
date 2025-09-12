@@ -713,7 +713,8 @@ void Chunk::addWaterBlockFaces(int bx, int by, int bz, const bool neighbors[6]) 
     blockPos += initialPosition;
     const float half_size = SOLID_SIZE / 2.0f;
 
-    constexpr float waterOffset = SOLID_SIZE / 10.0f;
+    //constexpr float waterOffset = SOLID_SIZE / 10.0f;
+    constexpr float waterOffset = 0;
 
     // generate top
     if (!neighbors[0]) {
