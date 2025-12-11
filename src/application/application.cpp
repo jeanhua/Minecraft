@@ -23,6 +23,7 @@ Application *Application::create() {
 
 Application::~Application() {
     delete mWorld;
+    glfwTerminate();
 }
 
 
@@ -103,7 +104,6 @@ void Application::run() const {
         lastTime = frameStartTime;
     }
 
-    glfwTerminate();
     std::cout << "Game over, bye!" << std::endl;
 }
 

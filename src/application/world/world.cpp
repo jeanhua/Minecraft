@@ -75,6 +75,7 @@ world::~world() {
     delete mSkybox;
     delete userInterface;
     for (auto chunk: mChunks) {
+		if (chunk.second != nullptr)
         delete chunk.second;
     }
 }
