@@ -1,9 +1,13 @@
 #idea
 .idea/
+.vs/
 
 # output
 build/
 debug/
+**debug/
+**release/
+out/
 
 # dependence
 package/
