@@ -9,6 +9,8 @@
 #include <vector>
 #include <functional>
 #include <thread>
+#include <list>
+#include <condition_variable>
 
 template<typename retType,typename inType>
 class Task
