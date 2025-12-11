@@ -9,58 +9,52 @@ in vec3 viewPos;
 // control
 uniform int showFog = 1;
 uniform int showSunshine = 1;
+uniform int rayTest = 0;
 
 uniform sampler2D world_sampler;
-uniform vec3 fogColor=vec3(1.0f,1.0f, 1.0f);
+uniform vec3 fogColor = vec3(1.0f, 1.0f, 1.0f);
 
-uniform vec3 lightDir=vec3(-0.50, -1.0, 0.2);
-uniform vec3 lightColor=vec3(1.0f,1.0f, 1.0f);
+uniform vec3 lightDir = vec3(-0.50, -1.0, 0.2);
+uniform vec3 lightColor = vec3(1.0f, 1.0f, 1.0f);
 uniform float ambientStrength = 0.8;
 uniform float specularStrength = 0.9;
 uniform int shininess = 32;
 
-// raytest
-uniform int rayTest = 0;
-uniform vec3 rayColor = vec3(1.0f,1.0f,1.0f);
+uniform vec3 rayColor = vec3(1.0f, 1.0f, 1.0f);
 
 out vec4 FragColor;
 
 void main() {
-    if(rayTest==1){
-        FragColor = vec4(rayColor.xyz,1.0f);
-        return;
-    }
+    float f_showSunshine = float(showSunshine);
+    float f_showFog = float(showFog);
+    float f_rayTest = float(rayTest);
 
+    vec4 texColor = texture(world_sampler, vertexUV);
+
+    // ===== 光照计算 =====
     // 环境光
     vec3 ambient = ambientStrength * lightColor;
 
     // 漫反射
     vec3 norm = normalize(normal);
-    vec3 lightDirection = normalize(-lightDir); // 取反，因为lightDir是太阳到物体的方向
+    vec3 lightDirection = normalize(-lightDir);
     float diff = max(dot(norm, lightDirection), 0.0);
     vec3 diffuse = diff * lightColor;
 
     // 镜面反射
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 reflectDir = reflect(-lightDirection, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), float(shininess));
     vec3 specular = specularStrength * spec * lightColor;
 
-    // 组合光照
-    vec4 texColor = texture(world_sampler, vertexUV);
-    vec3 lighting;
-    if(showSunshine==1){
-        lighting = (ambient + diffuse + specular) * texColor.rgb;
-    }else{
-        lighting = texColor.rgb;
-    }
+    vec3 litResult = (ambient + diffuse + specular) * texColor.rgb;
+    vec3 lighting = mix(texColor.rgb, litResult, f_showSunshine);
 
-    // fog
-    vec3 finalColor;
-    if(showFog==1){
-        finalColor = mix(fogColor, lighting, fogFactor);
-    }else{
-        finalColor = lighting;
-    }
-    FragColor = vec4(finalColor, texColor.a);
+    // ===== 雾效 =====
+    vec3 finalColor = lighting + (fogColor - lighting) * (1.0 - fogFactor) * f_showFog;
+
+    // ===== rayTest =====
+    vec4 normalOutput = vec4(finalColor, texColor.a);
+    vec4 rayOutput = vec4(rayColor, 1.0);
+    FragColor = mix(normalOutput, rayOutput, f_rayTest);
 }
